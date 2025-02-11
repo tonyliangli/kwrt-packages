@@ -245,8 +245,8 @@ jobs:
         git_clone https://github.com/muink/openwrt-Toolkit
         ) &
         (
-        git_sparse_clone softethervpn5 "https://github.com/tonyliangli/openwrt-packages" "kiddin9" luci-app-softethervpn5
-        git_sparse_clone master "https://github.com/kiddin9/kwrt-packages" "kiddin9" lua-maxminddb luci-app-bypass
+        git_sparse_clone softethervpn5 "https://github.com/tonyliangli/openwrt-packages" luci-app-softethervpn5
+        git_sparse_clone master "https://github.com/kiddin9/kwrt-packages" lua-maxminddb luci-app-bypass
         ) &
         (
         git_clone https://github.com/gSpotx2f/luci-app-temp-status
