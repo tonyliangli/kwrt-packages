@@ -1,3 +1,120 @@
+<?php include './language.php'; ?>
+<html lang="<?php echo $currentLang; ?>">
+<div class="modal fade" id="langModal" tabindex="-1" aria-labelledby="langModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="langModalLabel" data-translate="select_language">Select Language</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <select id="langSelect" class="form-select" onchange="changeLanguage(this.value)">
+                    <option value="zh" data-translate="simplified_chinese">Simplified Chinese</option>
+                    <option value="hk" data-translate="traditional_chinese">Traditional Chinese</option>
+                    <option value="en" data-translate="english">English</option>
+                    <option value="kr" data-translate="korean">Korean</option>
+                    <option value="vn" data-translate="vietnamese">Vietnamese</option>
+                    <option value="jp" data-translate="japanese"></option>
+                    <option value="ru" data-translate="russian"></option>
+                    <option value="ar" data-translate="arabic"></option>
+                    <option value="es" data-translate="spanish">spanish</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-translate="close">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+const langData = <?php echo json_encode($langData); ?>;  
+const currentLang = "<?php echo $currentLang; ?>"; 
+
+let translations = langData[currentLang] || langData['zh'];
+
+document.addEventListener("DOMContentLoaded", function () {
+    const userLang = localStorage.getItem('language') || currentLang;
+
+    updateLanguage(userLang); 
+    updateFlagIcon(userLang);  
+    document.getElementById("langSelect").value = userLang; 
+});
+
+function updateLanguage(lang) {
+    localStorage.setItem('language', lang); 
+    translations = langData[lang] || langData['zh'];  
+
+    document.querySelectorAll('[data-translate]').forEach((el) => {
+        const translationKey = el.getAttribute('data-translate');
+        const translationValue = translations[translationKey] || ''; 
+        if (translations[translationKey]) {
+            if (el.tagName === 'OPTGROUP') {
+                el.setAttribute('label', translationValue);  
+            } else {
+                el.innerText = translationValue;  
+            }
+        }
+    });
+
+    document.querySelectorAll('[data-translate-title]').forEach((el) => {
+        const translationKey = el.getAttribute('data-translate-title');
+        const translationValue = translations[translationKey] || ''; 
+        if (translations[translationKey]) {
+            el.setAttribute('title', translations[translationKey]);
+        }
+    });
+
+    document.querySelectorAll('[data-translate-placeholder]').forEach((el) => {
+        const translationKey = el.getAttribute('data-translate-placeholder');
+        const translationValue = translations[translationKey] || ''; 
+        if (translations[translationKey]) {
+            el.setAttribute('placeholder', translations[translationKey]);
+        }
+    });
+
+    document.querySelectorAll('[data-translate]').forEach((el) => {
+        const translationKey = el.getAttribute('data-translate');
+        const translationValue = translations[translationKey] || ''; 
+        if (translationKey && translations[translationKey]) {
+            el.setAttribute('label', translations[translationKey]);  
+        }
+    });
+}
+
+function updateFlagIcon(lang) {
+    const flagImg = document.getElementById('flagIcon');
+    if (!flagImg) return; 
+
+    const flagMap = {
+        'zh': './assets/neko/flags/cn.png', 
+        'hk': './assets/neko/flags/hk.png', 
+        'en': './assets/neko/flags/us.png',  
+        'kr': './assets/neko/flags/kr.png',  
+        'jp': './assets/neko/flags/jp.png', 
+        'ru': './assets/neko/flags/ru.png',  
+        'ar': './assets/neko/flags/sa.png', 
+        'es': './assets/neko/flags/es.png',  
+        'vn': './assets/neko/flags/vn.png'      
+    };
+    flagImg.src = flagMap[lang] || flagMap['zh']; 
+}
+
+function changeLanguage(lang) {
+    fetch('', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'lang=' + lang
+    }).then(response => response.text())
+      .then(data => {
+          console.log(data); 
+          updateLanguage(lang);  
+          updateFlagIcon(lang);  
+      });
+}
+</script>
+
 <?php
 function getAvailableSpace() {
     $dfOutput = [];
@@ -26,18 +143,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new_url = $_POST['new_url'];  
         $file_path = 'url_config.txt';  
         if (file_put_contents($file_path, $new_url)) {
-            $message = 'URL 更新成功！';
+            $message = $translations['update_success'];
         } else {
-            $message = '更新 URL 失败！';
+            $message = $translations['update_fail'];
         }
     }
 
     if (isset($_POST['reset_default'])) {
         $file_path = 'url_config.txt';  
         if (file_put_contents($file_path, $default_url)) {
-            $message = '恢复默认链接成功！';
+            $message = $translations['reset_success'];
         } else {
-            $message = '恢复默认链接失败！';
+            $message = $translations['reset_fail'];
         }
     }
 }
@@ -402,12 +519,12 @@ $lang = $_GET['lang'] ?? 'en';
 }
 </style>
 
-<?php if (in_array($lang, ['zh-cn', 'en', 'auto'])): ?>
+<?php if (in_array($currentLang, ['zh', 'en', 'hk', 'vn', 'jp', 'ru', 'ar', 'es', 'kr'])): ?>
     <div id="status-bar-component" class="container-sm container-bg callout border border-3 rounded-4 col-11">
         <div class="row align-items-center">
             <div class="col-auto">
                 <div class="img-con">
-                    <img src="./assets/neko/img/loading.svg" id="flag" title="点击刷新 IP 地址" onclick="IP.getIpipnetIP()">
+                    <img src="./assets/neko/img/loading.svg" id="flag" title="<?php echo $translations['refresh_ip']; ?>" onclick="IP.getIpipnetIP()">
                 </div>
             </div>
             <div class="col-3">
@@ -420,27 +537,27 @@ $lang = $_GET['lang'] ?? 'en';
             <div class="col-auto ms-auto">
                 <div class="status-icons d-flex">
                     <div class="site-icon mx-1" onclick="pingHost('baidu', 'Baidu')">
-                        <img src="./assets/neko/img/site_icon_01.png" id="baidu-normal" title="测试 Baidu 延迟" class="status-icon" style="display: none;">
+                        <img src="./assets/neko/img/site_icon_01.png" id="baidu-normal" title="<?php echo sprintf($translations['test_latency'], 'Baidu'); ?>" class="status-icon" style="display: none;">
                         <img src="./assets/neko/img/site_icon1_01.png" id="baidu-gray" class="status-icon">
                     </div>
                     <div class="site-icon mx-1" onclick="pingHost('taobao', 'Taobao')">
-                        <img src="./assets/neko/img/site_icon_02.png" id="taobao-normal" title="测试 Taobao 延迟"  class="status-icon" style="display: none;">
+                        <img src="./assets/neko/img/site_icon_02.png" id="taobao-normal" title="<?php echo sprintf($translations['test_latency'], 'Taobao'); ?>"  class="status-icon" style="display: none;">
                         <img src="./assets/neko/img/site_icon1_02.png" id="taobao-gray" class="status-icon">
                     </div>
                     <div class="site-icon mx-1" onclick="pingHost('google', 'Google')">
-                        <img src="./assets/neko/img/site_icon_03.png" id="google-normal" title="测试 Google 延迟"  class="status-icon" style="display: none;">
+                        <img src="./assets/neko/img/site_icon_03.png" id="google-normal" title="<?php echo sprintf($translations['test_latency'], 'Google'); ?>"  class="status-icon" style="display: none;">
                         <img src="./assets/neko/img/site_icon1_03.png" id="google-gray" class="status-icon">
                     </div>
                     <div class="site-icon mx-1" onclick="pingHost('openai', 'OpenAI')">
-                        <img src="./assets/neko/img/site_icon_06.png" id="openai-normal" title="测试 OpenAI  延迟"  class="status-icon" style="display: none;">
+                        <img src="./assets/neko/img/site_icon_06.png" id="openai-normal" title="<?php echo sprintf($translations['test_latency'], 'OpenAI'); ?>"  class="status-icon" style="display: none;">
                         <img src="./assets/neko/img/site_icon1_06.png" id="openai-gray" class="status-icon">
                     </div>
                     <div class="site-icon mx-1" onclick="pingHost('youtube', 'YouTube')">
-                        <img src="./assets/neko/img/site_icon_04.png" id="youtube-normal" title="测试 YouTube 延迟" class="status-icon" style="display: none;">
+                        <img src="./assets/neko/img/site_icon_04.png" id="youtube-normal" title="<?php echo sprintf($translations['test_latency'], 'YouTube'); ?>" class="status-icon" style="display: none;">
                         <img src="./assets/neko/img/site_icon1_04.png" id="youtube-gray" class="status-icon">
                     </div>
                     <div class="site-icon mx-1" onclick="pingHost('github', 'GitHub')">
-                        <img src="./assets/neko/img/site_icon_05.png" id="github-normal" title="测试 GitHub 延迟" class="status-icon" style="display: none;">
+                        <img src="./assets/neko/img/site_icon_05.png" id="github-normal" title="<?php echo sprintf($translations['test_latency'], 'GitHub'); ?>" class="status-icon" style="display: none;">
                         <img src="./assets/neko/img/site_icon1_05.png" id="github-gray" class="status-icon">
                     </div>
                 </div>
@@ -557,7 +674,7 @@ $lang = $_GET['lang'] ?? 'en';
         z-index: 1000;
         text-align: center;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        width: 620px;
+        width: 820px;
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 10px;
@@ -866,69 +983,102 @@ async function pingHost(site, siteName) {
     const resultElement = document.getElementById('ping-result');
 
     try {
-        resultElement.innerHTML = `<span style="font-size: 22px">正在测试 ${siteName} 的连接延迟...`;
-        resultElement.style.color = '#87CEFA';        
+        resultElement.innerHTML = `<span style="font-size: 22px">${translations.testing_latency.replace('%s', siteName)}...</span>`;
+        resultElement.style.color = '#87CEFA';
+
         const startTime = performance.now();
         await fetch(url, {
             mode: 'no-cors',
             cache: 'no-cache'
         });
         const endTime = performance.now();
-        const pingTime = Math.round(endTime - startTime);      
-        resultElement.innerHTML = `<span style="font-size: 22px">${siteName} 连接延迟: ${pingTime}ms</span>`;
-        if(pingTime <= 300) {
-                resultElement.style.color = '#09B63F'; 
-        } else if(pingTime <= 700) {
-                resultElement.style.color = '#FFA500'; 
+        const pingTime = Math.round(endTime - startTime);
+
+        resultElement.innerHTML = `<span style="font-size: 22px">${translations.latency_result.replace('%s', siteName).replace('%d', pingTime)}</span>`;
+
+        if (pingTime <= 300) {
+            resultElement.style.color = '#09B63F';  
+        } else if (pingTime <= 700) {
+            resultElement.style.color = '#FFA500';  
         } else {
-                resultElement.style.color = '#ff6b6b'; 
+            resultElement.style.color = '#ff6b6b';  
         }
     } catch (error) {
-        resultElement.innerHTML = `<span style="font-size: 22px">${siteName} 连接超时`;
+        resultElement.innerHTML = `<span style="font-size: 22px">${translations.connection_timeout.replace('%s', siteName)}</span>`;
         resultElement.style.color = '#ff6b6b';
     }
 }
 
-async function onlineTranslate(text, targetLang = 'zh') {
-    if (!text || typeof text !== 'string' || text.trim() === '') {
-        return text;
+document.addEventListener('DOMContentLoaded', () => {
+    const translationBtn = document.getElementById('translationToggleBtn');
+
+    const updateButtonState = () => {
+        const isEnabled = localStorage.getItem('translationEnabled') === 'true';
+         translationBtn.textContent = isEnabled ? langData[currentLang].disable : langData[currentLang].enable;
+
+    };
+
+    if (!localStorage.getItem('translationEnabled')) {
+        localStorage.setItem('translationEnabled', 'false');
     }
+    updateButtonState();
+
+    translationBtn.addEventListener('click', () => {
+        const newState = localStorage.getItem('translationEnabled') !== 'true';
+        localStorage.setItem('translationEnabled', newState);
+        updateButtonState();
+        
+        translationBtn.style.transform = "scale(0.95)";
+        setTimeout(() => {
+            translationBtn.style.transform = "scale(1)";
+        }, 100);
+    });
+});
+
+async function translateText(text, targetLang = null) {
+    if (!text || text.trim() === '') return text;
+
+    if (!targetLang) {
+        targetLang = localStorage.getItem('language') || 'zh';
+    }
+
+    if (targetLang === 'zh') targetLang = 'zh-CN';
+    if (targetLang === 'hk') targetLang = 'zh-HK';
+    if (targetLang === 'vn') targetLang = 'vi';
+    if (targetLang === 'jp') targetLang = 'ja';
+    if (targetLang === 'en') targetLang = 'en-GB';
+    if (targetLang === 'kr') targetLang = 'ko';
+    if (targetLang === 'ru') targetLang = 'ru'; 
+
+    const isTranslationEnabled = localStorage.getItem('translationEnabled') === 'true';
+    if (!isTranslationEnabled) return text;
 
     const cacheKey = `trans_${text}_${targetLang}`;
     const cachedTranslation = localStorage.getItem(cacheKey);
-    if (cachedTranslation) {
-        return cachedTranslation;
-    }
+    if (cachedTranslation) return cachedTranslation;
 
     const apis = [
         {
-            url: 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en|' + targetLang,
+            url: `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${targetLang}`,
             method: 'GET',
-            parseResponse: (data) => data.responseData.translatedText
+            parseResponse: (data) => data.responseData?.translatedText || null
         },
         {
             url: 'https://libretranslate.com/translate',
             method: 'POST',
             body: JSON.stringify({
                 q: text,
-                source: 'en',
+                source: 'en', 
                 target: targetLang,
                 format: 'text'
             }),
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            parseResponse: (data) => data.translatedText
+            headers: { 'Content-Type': 'application/json' },
+            parseResponse: (data) => data?.translatedText || null
         },
         {
             url: `https://lingva.ml/api/v1/en/${targetLang}/${encodeURIComponent(text)}`,
             method: 'GET',
-            parseResponse: (data) => data.translation
-        },
-        {
-            url: `https://simplytranslate.org/api/translate?engine=google&from=en&to=${targetLang}&text=${encodeURIComponent(text)}`,
-            method: 'GET',
-            parseResponse: (data) => data.translatedText
+            parseResponse: (data) => data?.translation || null
         }
     ];
 
@@ -945,20 +1095,20 @@ async function onlineTranslate(text, targetLang = 'zh') {
                 const translatedText = api.parseResponse(data);
                 
                 try {
-                    localStorage.setItem(cacheKey, translatedText);
+                    localStorage.setItem(cacheKey, translatedText);  
                 } catch (e) {
-                    clearOldCache();
+                    clearOldCache();  
                     localStorage.setItem(cacheKey, translatedText);
                 }
                 
                 return translatedText;
             }
         } catch (error) {
-            continue;
+            continue;  
         }
     }
 
-    return text;
+    return text; 
 }
 
 function clearOldCache() {
@@ -971,13 +1121,6 @@ function clearOldCache() {
         const itemsToRemove = cacheKeys.slice(0, cacheKeys.length - 1000);
         itemsToRemove.forEach(key => localStorage.removeItem(key));
     }
-}
-
-async function translateText(text, targetLang = 'zh') {
-    if (translate[text]) {
-        return translate[text];
-    } 
-    return await onlineTranslate(text, targetLang);
 }
 
 let IP = {
@@ -1077,7 +1220,7 @@ let IP = {
 
     updateUI: async (data, elID) => {
         try {
-            const country = await translateText(data.country || "未知");
+            const country = await translateText(data.country || translations['unknown']);
             const region = await translateText(data.region || "");
             const city = await translateText(data.city || "");
             const isp = await translateText(data.isp || "");
@@ -1099,7 +1242,7 @@ let IP = {
             const isHidden = localStorage.getItem("ipHidden") === "true";
 
             let simpleDisplay = `
-                <div class="ip-main" style="cursor: pointer; position: relative; top: -4px;" onclick="IP.showDetailModal()" title="点击查看 IP 详细信息">
+                <div class="ip-main" style="cursor: pointer; position: relative; top: -4px;" onclick="IP.showDetailModal()" title="${translations['show_ip']}">
                     <div style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; ">
                         <div style="display: flex; align-items: center; gap: 5px;">
                             <span id="ip-address">${isHidden ? '***.***.***.***.***' : cachedIP}</span> 
@@ -1108,10 +1251,10 @@ let IP = {
                         </div>
                     </div>
                 </div>
-                <span id="toggle-ip" style="cursor: pointer; position: relative; top: -3px;  text-indent: 0.3ch; padding-top: 2px;" title="点击隐藏/显示 IP">
+                <span id="toggle-ip" style="cursor: pointer; position: relative; top: -3px; text-indent: 0.3ch; padding-top: 2px;" title="${translations['hide_ip']}">
                     <i class="fa ${isHidden ? 'bi-eye-slash' : 'bi-eye'}" style="font-size: 1.4rem; vertical-align: middle;"></i>  
                 </span>
-                <span class="control-toggle" style="cursor: pointer; margin-left: 10px; display: inline-flex; align-items: center; position: relative; top: -1.7px;" onclick="togglePopup()" title="打开控制面板">
+                <span class="control-toggle" style="cursor: pointer; margin-left: 10px; display: inline-flex; align-items: center; position: relative; top: -1.7px;" onclick="togglePopup()" title="${translations['control_panel']}">
                     <i class="bi bi-gear" style="font-size: 1.1rem; margin-right: 5px; vertical-align: middle;"></i>  
                 </span>
             `;
@@ -1142,7 +1285,7 @@ let IP = {
 
         } catch (error) {
             console.error("Error in updateUI:", error);
-            document.getElementById('d-ip').innerHTML = "更新 IP 信息失败";
+            document.getElementById('d-ip').innerHTML = langData[currentLang]['connection_timeout'];
             $("#flag").attr("src", "./assets/neko/flags/mo.png");
         }
     },
@@ -1151,17 +1294,17 @@ let IP = {
         const data = IP.lastGeoData;
         if (!data) return;
 
-        const translatedCountry = await translateText(data.country, 'zh');
-        const translatedRegion = await translateText(data.region, 'zh');  
-        const translatedCity = await translateText(data.city, 'zh');
-        const translatedIsp = await translateText(data.isp, 'zh');
-        const translatedAsnOrganization = await translateText(data.asn_organization, 'zh');
+        const translatedCountry = await translateText(data.country, currentLang) || data.country || langData[currentLang]['unknown'];
+        const translatedRegion = await translateText(data.region, currentLang) || data.region || "";
+        const translatedCity = await translateText(data.city, currentLang) || data.city || "";
+        const translatedIsp = await translateText(data.isp, currentLang) || data.isp || "";
+        const translatedAsnOrganization = await translateText(data.asn_organization, currentLang) || data.asn_organization || "";
 
-        let country = translatedCountry || data.country || "未知";
-        let region = translatedRegion || data.region || "";
-        let city = translatedCity || data.city || "";
-        let isp = translatedIsp || data.isp || "";
-        let asnOrganization = translatedAsnOrganization || data.asn_organization || "";
+        let country = translatedCountry;
+        let region = translatedRegion;
+        let city = translatedCity;
+        let isp = translatedIsp;
+        let asnOrganization = translatedAsnOrganization;
         let timezone = data.timezone || "";
         let asn = data.asn || "";
 
@@ -1170,25 +1313,13 @@ let IP = {
             areaDisplay = `${country} ${region}`; 
         }
 
-        let ipSupport;
-        const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
-        const ipv6Regex = /^[a-fA-F0-9:]+$/;
- 
-        if (ipv4Regex.test(cachedIP)) {
-            ipSupport = 'IPv4 支持';
-        } else if (ipv6Regex.test(cachedIP)) {
-            ipSupport = 'IPv6 支持';
-        } else {
-            ipSupport = '未检测到 IPv4 或 IPv6 支持';
-        }
-
         const pingResults = await checkAllPings();
         const delayInfoHTML = Object.entries(pingResults).map(([key, { name, pingTime }]) => {
             let color = '#ff6b6b'; 
             if (typeof pingTime === 'number') {
                 color = pingTime <= 300 ? '#09B63F' : pingTime <= 700 ? '#FFA500' : '#ff6b6b';
             }
-            return `<span style="margin-right: 20px; font-size: 18px; color: ${color};">${name}: ${pingTime === '超时' ? '超时' : `${pingTime}ms`}</span>`;
+            return `<span style="margin-right: 20px; font-size: 18px; color: ${color};">${name}: ${pingTime === '超时' ? langData[currentLang]['timeout'] : `${pingTime}ms`}</span>`;
         }).join('');
 
         let lat = data.latitude || null;
@@ -1201,7 +1332,7 @@ let IP = {
                 lat = geoData.latitude;
                 lon = geoData.longitude;
             } catch (error) {
-                console.error("获取 IP 地理位置失败:", error);
+                console.error(langData[currentLang]['geo_location_error'], error);
             }
         }
 
@@ -1210,54 +1341,49 @@ let IP = {
                 <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="ipDetailModalLabel">IP详细信息</h5>
+                            <h5 class="modal-title" id="ipDetailModalLabel">${translations['ip_info']}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
                         <div class="modal-body">
-                            <div class="ip-details">
                                 <div class="detail-row">
-                                    <span class="detail-label">IP支持:</span>
-                                    <span class="detail-value">${ipSupport}</span>
-                            </div>
-                                <div class="detail-row">
-                                    <span class="detail-label">IP地址:</span>
+                                    <span class="detail-label">${translations['ip_address']}:</span>
                                     <span class="detail-value">${cachedIP}</span>
                                 </div>
                                 <div class="detail-row">
-                                    <span class="detail-label">地区:</span>
+                                    <span class="detail-label">${translations['location']}:</span>
                                     <span class="detail-value">${areaDisplay}</span>
                                 </div>
                                 <div class="detail-row">
-                                    <span class="detail-label">运营商:</span>
+                                    <span class="detail-label">${translations['isp']}:</span>
                                     <span class="detail-value">${isp}</span>
                                 </div>
                                 <div class="detail-row">
-                                    <span class="detail-label">ASN:</span>
+                                    <span class="detail-label">${translations['asn']}:</span>
                                     <span class="detail-value">${asn} ${asnOrganization}</span>
                                 </div>
                                 <div class="detail-row">
-                                    <span class="detail-label">时区:</span>
+                                    <span class="detail-label">${translations['timezone']}:</span>
                                     <span class="detail-value">${timezone}</span>
                                 </div>
                                 ${data.latitude && data.longitude ? `
                                 <div class="detail-row">
-                                    <span class="detail-label">经纬度:</span>
+                                    <span class="detail-label">${translations['latitude_longitude']}:</span>
                                     <span class="detail-value">${data.latitude}, ${data.longitude}</span>
                                 </div>` : ''}                           
                                 ${lat && lon ? `
                                 <div class="detail-row" style="height: 400px; margin-top: 20px;">
                                     <div id="leafletMap" style="width: 100%; height: 100%;"></div>
                                 </div>` : ''}
-                                <h5 style="margin-top: 15px;">延迟信息:</h5>
+                                <h5 style="margin-top: 15px;">${translations['latency_info']}:</h5>
                                 <div class="detail-row" style="display: flex; flex-wrap: wrap;">
                                     ${delayInfoHTML}
                                 </div>
                             </div>
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                       <!-- <div class="modal-footer">
+                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-translate="close_button"></button> -->
                         </div>
                     </div>
                 </div>
@@ -1274,7 +1400,7 @@ let IP = {
 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-                const popupContent = city || region || "当前位置";
+                const popupContent = city || region || translations['current_location'];
                 L.marker([lat, lon]).addTo(map)
                     .bindPopup(popupContent)
                     .openPopup();
@@ -1316,7 +1442,7 @@ let IP = {
             document.getElementById('d-ip').innerHTML = `
                 <div class="ip-main">
                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    检查中...
+                    ${langData[currentLang]['checking']} 
                 </div>
             `;
             document.getElementById('ipip').innerHTML = "";
@@ -1326,7 +1452,7 @@ let IP = {
             await IP.Ipip(ip, 'ipip');
         } catch (error) {
             console.error("Error in getIpipnetIP function:", error);
-            document.getElementById('ipip').innerHTML = "获取IP信息失败";
+            document.getElementById('ipip').innerHTML = langData[currentLang]['ip_info_fail']; 
         } finally {
             IP.isRefreshing = false;
         }
@@ -1367,17 +1493,19 @@ style.textContent = `
 .detail-row {
     margin-bottom: 12px;
     display: flex;
+    align-items: center; 
 }
 
 .detail-label {
-    font-weight: 500;
-    color: #666;
-    flex: 0 0 80px;
+    font-weight: bold;
+    margin-right: 10px;  
+    white-space: nowrap;
 }
 
 .detail-value {
     color: #333;
     flex: 1;
+    white-space: nowrap; 
 }
 
 .modal-content {
@@ -1392,9 +1520,8 @@ style.textContent = `
 .modal-body {
     padding: 20px;
 }
-
 .custom-modal .modal-header {
-    background-color: #fff;;
+    background-color: #fff;
     color: #fff;
     padding: 16px 20px;
     border-bottom: 1px solid #ddd;
@@ -1530,10 +1657,10 @@ setInterval(IP.getIpipnetIP, 180000);
         var savedPlayState = localStorage.getItem("videoPaused");
         if (savedPlayState === "true") {
             video.pause();
-            document.getElementById('playPauseBtn').textContent = '▶️ 播放';
+            document.getElementById('playPauseBtn').textContent = translations['play']; 
         } else {
             video.play();
-            document.getElementById('playPauseBtn').textContent = '⏸️ 暂停';
+            document.getElementById('playPauseBtn').textContent = translations['pause']; 
         }
 
         function formatTime(seconds) {
@@ -1554,7 +1681,7 @@ setInterval(IP.getIpipnetIP, 180000);
             video.currentTime = 0;
             video.style.objectFit = 'cover';
         
-            playPauseBtn.textContent = '▶️ 播放';
+            playPauseBtn.textContent = translations['play']; 
         }, 60 * 60 * 1000); 
 
         document.getElementById('clearSettingsBtn').addEventListener('click', function() {
@@ -1569,7 +1696,7 @@ setInterval(IP.getIpipnetIP, 180000);
             video.currentTime = 0;
             video.style.objectFit = 'cover';
         
-            playPauseBtn.textContent = '▶️ 播放';
+            playPauseBtn.textContent = translations['play']; 
         
         });
     });
@@ -1605,11 +1732,11 @@ setInterval(IP.getIpipnetIP, 180000);
         var playPauseBtn = document.getElementById('playPauseBtn');
         if (video.paused) {
             video.play();
-            playPauseBtn.textContent = '⏸️ 暂停';
+            playPauseBtn.textContent = translations['pause']; 
             localStorage.setItem("videoPaused", "false");
         } else {
             video.pause();
-            playPauseBtn.textContent = '▶️ 播放';
+            playPauseBtn.textContent = translations['play']; 
             localStorage.setItem("videoPaused", "true");
         }
     }
@@ -1630,32 +1757,32 @@ setInterval(IP.getIpipnetIP, 180000);
         switch (video.style.objectFit) {
             case "contain":
                 video.style.objectFit = "cover";
-                objectFitBtn.textContent = "🔲 正常显示";
+                objectFitBtn.textContent = translations['normal_display']; 
                 localStorage.setItem("videoObjectFit", "cover");
                 break;
             case "cover":
                 video.style.objectFit = "fill";
-                objectFitBtn.textContent = "🖼️ 填充";
+                objectFitBtn.textContent = translations['fill']; 
                 localStorage.setItem("videoObjectFit", "fill");
                 break;
             case "fill":
                 video.style.objectFit = "none";
-                objectFitBtn.textContent = "🔲 不缩放";
+                objectFitBtn.textContent = translations['no_scale'];
                 localStorage.setItem("videoObjectFit", "none");
                 break;
             case "none":
                 video.style.objectFit = "scale-down";
-                objectFitBtn.textContent = "🖼️ 缩小";
+                objectFitBtn.textContent = translations['scale_down'];
                 localStorage.setItem("videoObjectFit", "scale-down");
                 break;
             case "scale-down":
                 video.style.objectFit = "contain";
-                objectFitBtn.textContent = "🖼️ 铺满全屏";
+                objectFitBtn.textContent = translations['normal_display']; 
                 localStorage.setItem("videoObjectFit", "contain");
                 break;
             default:
                 video.style.objectFit = "cover"; 
-                objectFitBtn.textContent = "🔲 正常显示";
+                objectFitBtn.textContent = translations['normal_display'];
                 localStorage.setItem("videoObjectFit", "cover");
                 break;
         }
@@ -1666,8 +1793,8 @@ setInterval(IP.getIpipnetIP, 180000);
         var audioBtn = document.getElementById('audio-btn');
         var fullscreenBtn = document.getElementById('fullscreen-btn');
 
-        audioBtn.textContent = video.muted ? "🔇 静音" : "🔊 取消静音";
-        fullscreenBtn.textContent = document.fullscreenElement ? "📴 退出全屏" : "⛶ 进入全屏";
+        audioBtn.textContent = video.muted ? translations['mute'] : translations['unmute'];
+        fullscreenBtn.textContent = document.fullscreenElement ? translations['fullscreen_exit'] : translations['fullscreen_enter'];
     }
 
     document.addEventListener("keydown", function(event) {
@@ -1680,42 +1807,120 @@ setInterval(IP.getIpipnetIP, 180000);
 </script>
 
 <div class="popup" id="popup">
-    <h3>🔧 控制面板</h3>
-    <button onclick="toggleAudio()" id="audio-btn">🔊 切换音频</button>
-    <button onclick="toggleControlPanel()" id="control-btn">🎛️ 音量和进度控制</button>
-    <button id="openPlayerButton"  data-bs-toggle="modal" data-bs-target="#audioPlayerModal">🎶 音乐播放器</button>
-    <button type='button' onclick='openVideoPlayerModal()'><i class='fas fa-video'></i> 媒体播放器</button>
-    <button onclick="toggleObjectFit()" id="object-fit-btn">🔲 切换显示模式</button>
-    <button onclick="toggleFullScreen()" id="fullscreen-btn">⛶ 切换全屏</button>
-    <button id="clear-cache-btn">🗑️ 清除缓存</button>
-    <button type="button" data-bs-toggle="modal" data-bs-target="#cityModal">🌆 设置城市</button>
-    <button type="button" data-bs-toggle="modal" data-bs-target="#keyHelpModal">⌨️ 键盘快捷键</button>
-    <button id="startCheckBtn">🌐 启动网站检测</button>
-    <button id="startWeatherBtn">🌦️ 启动天气播报</button>
-    <button id="toggleAnimationBtn">🖥️ 启动方块动画</button>
-    <button id="toggleSnowBtn">❄️ 启动雪花动画</button>
-    <button id="toggleLightAnimationBtn">💡 启动灯光动画</button>
-    <button id="toggleLightEffectBtn">✨ 启动光点动画</button>
-    <button id="toggleModal"><i class="fas fa-arrows-alt-h"></i> 修改页面宽度</button>
-    <button type="button" data-bs-toggle="modal" data-bs-target="#colorModal"><i class="bi-palette"></i> 主题编辑器</button>                   
-    <button type="button" data-bs-toggle="modal" data-bs-target="#filesModal"><i class="bi-camera-video"></i> 设置背景</button>
-    <button onclick="togglePopup()">❌ 关闭</button>
+    <h3 data-translate="control_panel_title">🔧 Control Panel</h3>
+    <button onclick="toggleAudio()" id="audio-btn" data-translate="audio_toggle"></button>
+    <button onclick="toggleControlPanel()" id="control-btn" data-translate="control_toggle">🎛️ Volume and Progress Control</button>
+    <button id="openPlayerButton" data-bs-toggle="modal" data-bs-target="#audioPlayerModal" data-translate="music_player">🎶 Music Player</button>
+    <button type='button' onclick='openVideoPlayerModal()' data-translate="video_player"><i class='fas fa-video'></i> Media Player</button>
+    <button onclick="toggleObjectFit()" id="object-fit-btn" data-translate="object_fit_toggle">🔲 Toggle Display Mode</button>
+    <button onclick="toggleFullScreen()" id="fullscreen-btn" data-translate="fullscreen_toggle">⛶ Toggle Fullscreen</button>
+    <button id="clear-cache-btn" data-translate="clear_cache">🗑️ Clear Cache</button>
+    <button type="button" data-bs-toggle="modal" data-bs-target="#cityModal" data-translate="city_settings">🌆 Set City</button>
+    <button type="button" data-bs-toggle="modal" data-bs-target="#keyHelpModal" data-translate="keyboard_help">⌨️ Keyboard Shortcuts</button>
+    <button id="startCheckBtn" data-translate="start_check">🌐 Start Website Check</button>
+    <button id="startWeatherBtn" data-translate="start_weather">🌦️ Start Weather Report</button>
+    <button id="openModalBtn" data-translate="open_animation">🎛️ Open Animation Control</button>
+    <button id="toggleModal" data-translate="toggle_width"><i class="fas fa-arrows-alt-h"></i> Modify Page Width</button>
+    <button type="button" data-bs-toggle="modal" data-bs-target="#colorModal" data-translate="theme_editor"><i class="bi-palette"></i> Theme Editor</button>                   
+    <button type="button" data-bs-toggle="modal" data-bs-target="#filesModal" data-translate="set_background"><i class="bi-camera-video"></i> Set Background</button>
+    <button data-bs-toggle="modal" data-bs-target="#langModal"><img id="flagIcon" src="./assets/neko/flags/cn.png" alt="Country Flag" style="width: 30px; height: auto; margin-right: 10px;"><span data-translate="set_language">Set Language</span></button>
+     <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.open('./filekit.php', '_blank')"><i class="bi bi-file-earmark"></i> <span data-translate="fileHelper">文件助手</span></button>
+     <button type="button"  id="translationToggleBtn">🔤 启用翻译</button>
+    <button onclick="togglePopup()" data-translate="close_popup">❌ Close</button>
 </div>
+
 <div id="controlPanel">
-    <h3>视频控制面板</h3>
+    <h3 data-translate="video_control_panel">Video Control Panel</h3>
     <div>
-        <label for="volumeControl">音量控制</label>
+        <label for="volumeControl" data-translate="volume_control">Volume Control</label>
         <input type="range" id="volumeControl" min="0" max="1" step="0.01" value="1">
     </div>
     <div>
-        <label for="progressControl">播放进度</label>
+        <label for="progressControl" data-translate="progress_control">Playback Progress</label>
         <input type="range" id="progressControl" min="0" max="100" step="0.1" value="0">
         <span id="progressTimeDisplay">00:00 / 00:00</span>
     </div>
-    <button id="clearSettingsBtn"><i class="fas fa-trash-alt"></i> 清除视频设置</button>
-    <button onclick="togglePlayPause()" id="playPauseBtn">⏸️ 暂停</button>
-    <button onclick="toggleControlPanel()">❌ 关闭</button>
+    <button id="clearSettingsBtn" data-translate="clear_video_settings"><i class="fas fa-trash-alt"></i> Clear Video Settings</button>
+    <button onclick="togglePlayPause()" id="playPauseBtn" data-translate="play_pause">⏸️ Pause</button>
+    <button onclick="toggleControlPanel()" data-translate="close_popup">❌ Close</button>
 </div>
+
+<style>
+    .animation-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 50%;
+        top: 10%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.5);
+        justify-content: center;
+        align-items: flex-start;
+        width: 100%;
+    }
+
+    .animation-modal-content {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        width: 400px;
+        text-align: center;
+        position: relative;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+        margin-top: 20px;
+    }
+
+    .animation-modal-content button {
+        display: block;
+        width: 100%;
+        margin: 10px 0;
+        padding: 10px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    .modal-close-btn {
+        display: block;
+        width: 100px;
+        margin: 20px auto 0;
+        padding: 10px;
+        font-size: 16px;
+        cursor: pointer;
+        background-color: red;
+        color: white;
+        border: none;
+        border-radius: 5px;
+    }
+</style>
+
+<div id="animationModal" class="animation-modal">
+    <div class="animation-modal-content">
+        <button id="toggleAnimationBtn" data-translate="start_cube_animation">🖥️ Start Cube Animation</button>
+        <button id="toggleSnowBtn" data-translate="start_snow_animation">❄️ Start Snow Animation</button>
+        <button id="toggleLightAnimationBtn" data-translate="start_light_animation">💡Start Light Animation</button>
+        <button id="toggleLightEffectBtn" data-translate="start_light_effect_animation">✨Start Light Effect Animation</button>
+        <button class="modal-close-btn" onclick="closeModal()" data-translate="close">Close</button>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById("animationModal");
+    const openModalBtn = document.getElementById("openModalBtn");
+
+    openModalBtn.addEventListener("click", () => {
+        modal.style.display = "flex";
+    });
+
+    function closeModal() {
+        modal.style.display = "none";
+    }
+
+    window.addEventListener("click", (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+</script>
 
 <script>
 document.addEventListener('keydown', function(event) {
@@ -1729,6 +1934,9 @@ document.getElementById('clear-cache-btn').addEventListener('click', function() 
     clearCache();
 });
 
+const notificationMessage = translations['cache_cleared_notification'];
+const speechMessage = translations['cache_cleared_speech'];
+
 function clearCache() {
     location.reload(true); 
 
@@ -1737,8 +1945,8 @@ function clearCache() {
 
     sessionStorage.setItem('cacheCleared', 'true');
 
-    showNotification('缓存已清除');
-    speakMessage('缓存已清除');
+    showNotification(translations['notificationMessage']);
+    speakMessage(translations['notificationMessage']);
 }
 
 function showNotification(message) {
@@ -1762,8 +1970,8 @@ function showNotification(message) {
 
 window.addEventListener('load', function() {
     if (sessionStorage.getItem('cacheCleared') === 'true') {
-        showNotification('缓存已清除');
-        speakMessage('缓存已清除');
+        showNotification(translations['notificationMessage']);
+        speakMessage(translations['notificationMessage']);
         sessionStorage.removeItem('cacheCleared'); 
     }
 });
@@ -2193,7 +2401,7 @@ window.addEventListener('load', function() {
   <div class="modal-dialog modal-xl" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="audioPlayerModalLabel">音乐播放器</h5>
+        <h5 class="modal-title" id="audioPlayerModalLabel" data-translate="music_player">Music Player</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -2203,25 +2411,25 @@ window.addEventListener('load', function() {
         </div>
         <audio id="audioElement" controls>
           <source id="audioSource" type="audio/mp3" src="your-audio-file.mp3">
-          您的浏览器不支持 audio 元素。
+          Your browser does not support the audio element.
         </audio>
         <div class="audio-player-container text-center">
-          <button id="modalPlayPauseButton" class="btn btn-primary">▶ 播放</button>
-          <button id="modalPrevButton" class="btn btn-secondary">⏪ 上一首</button>
-          <button id="modalNextButton" class="btn btn-secondary">⏩ 下一首</button>
-          <button id="modalRewindButton" class="btn btn-dark">⏪ 快退</button>
-          <button id="modalFastForwardButton" class="btn btn-info">⏩ 快进</button>
-          <button id="modalLoopButton" class="btn btn-warning">🔁 循环</button>
-          <div class="track-name" id="trackName">没有歌曲</div>
+          <button id="modalPlayPauseButton" class="btn btn-primary"><span data-translate="play1"></span></button>
+          <button id="modalPrevButton" class="btn btn-secondary" data-translate="previous_song">⏪ Previous Song</button>
+          <button id="modalNextButton" class="btn btn-secondary" data-translate="next_song">⏩ Next Song</button>
+          <button id="modalRewindButton" class="btn btn-dark" data-translate="rewind">⏪ Rewind</button>
+          <button id="modalFastForwardButton" class="btn btn-info" data-translate="fast_forward">⏩ Fast Forward</button>
+          <button id="modalLoopButton" class="btn btn-warning" data-translate="loop">🔁 Loop</button>
+          <div class="track-name" id="trackName" data-translate="no_song">No Song</div>
         </div>
-        <button class="btn btn-outline-primary mt-3" type="button" data-bs-toggle="collapse" data-bs-target="#playlistCollapse" aria-expanded="true">
-          📜 显示/隐藏播放列表
+        <button class="btn btn-outline-primary mt-3" type="button" data-bs-toggle="collapse" data-bs-target="#playlistCollapse" aria-expanded="true" data-translate="toggle_playlist">
+          📜 Show/Hide Playlist
         </button>
-        <button class="btn btn-outline-primary mt-3 ms-2" type="button" data-bs-toggle="modal" data-bs-target="#urlModal">🔗 定制播放列表</button>
-        <button class="btn btn-outline-primary mt-3 ms-2"  id="clearStorageBtn"><i class="fas fa-trash-alt"></i> 清除播放设置</button>
-        <button class="btn btn-outline-primary mt-3 ms-2"  id="pinLyricsButton"><i class="fas fa-thumbtack"></i> 桌面歌词</button>
+        <button class="btn btn-outline-primary mt-3 ms-2" type="button" data-bs-toggle="modal" data-bs-target="#urlModal" data-translate="customize_playlist">🔗 Customize Playlist</button>
+        <button class="btn btn-outline-primary mt-3 ms-2"  id="clearStorageBtn" data-translate="clear_playback_settings"><i class="fas fa-trash-alt"></i> Clear Playback Settings</button>
+        <button class="btn btn-outline-primary mt-3 ms-2"  id="pinLyricsButton" data-translate="pin_lyrics"><i class="fas fa-thumbtack"></i> Pin Lyrics</button>
         <div id="playlistCollapse" class="collapse mt-3">
-          <h3>播放列表</h3>
+          <h3 data-translate="playlist">Playlist</h3>
           <ul id="trackList" class="list-group"></ul>
         </div>
         <div class="lyrics-container" id="lyricsContainer"></div>
@@ -2290,17 +2498,17 @@ function loadDefaultPlaylist() {
     fetch('<?php echo $new_url; ?>')
         .then(response => {
             if (!response.ok) {
-                throw new Error('加载播放列表失败');
-                speakMessage('加载播放列表失败');
+                throw new Error('load_playlist_error');  
+                speakMessage(translations['load_playlist_error']); 
             }
             return response.text();
         })
         .then(data => {
             songs = data.split('\n').filter(url => url.trim() !== '');
             if (songs.length === 0) {
-                throw new Error('播放列表中没有有效的歌曲');
+                throw new Error('no_valid_songs_in_playlist'); 
             }
-            console.log('播放列表已加载:', songs);
+            console.log(translations['playlist_loaded'], songs); 
             const savedOrder = JSON.parse(localStorage.getItem('songOrder'));
             if (savedOrder) {
                 songs = savedOrder;
@@ -2310,7 +2518,7 @@ function loadDefaultPlaylist() {
             updateTrackName(); 
         })
         .catch(error => {
-            console.error('加载播放列表时出错:', error.message);
+            console.error(translations['load_playlist_error'], error.message);
         });
 }
 
@@ -2331,7 +2539,7 @@ function updateTrackListUI() {
             if (isPlaying) audioPlayer.play();
             updateTrackName();
             highlightCurrentSong();
-            showLogMessage(`播放列表点击：索引 ${index}, 歌曲名称: ${trackItem.textContent.trim()}`);
+            showLogMessage(`${translations['playlist_click_log']} ${index}: ${trackItem.textContent.trim()}`);
             savePlayerState();
         });
 
@@ -2417,7 +2625,7 @@ function loadSong(index) {
                 audioPlayer.currentTime = savedState.currentTime || 0;
                 if (savedState.isPlaying) {
                     audioPlayer.play().catch(error => {
-                        console.error('恢复播放失败:', error);
+                        console.error(translations['restore_play_error'], error); 
                     });
                 }
             }
@@ -2434,20 +2642,20 @@ playPauseButton.addEventListener('click', function() {
         audioPlayer.play().then(() => {
             isPlaying = true;
             savePlayerState();
-            console.log('开始播放');
-            speakMessage('开始播放');
-            playPauseButton.textContent = '⏸️ 暂停';
+            console.log(translations['start_playing']); 
+            speakMessage(translations['start_playing']); 
+            playPauseButton.textContent = '⏸️ ' + translations['pause']; 
             updateTrackName();
         }).catch(error => {
-            console.log('播放失败:', error);
+            console.log(translations['play_error'], error);
         });
     } else {
         audioPlayer.pause();
         isPlaying = false;
         savePlayerState();
-        console.log('播放已暂停');
-        speakMessage('播放已暂停');
-        playPauseButton.textContent = '▶ 播放';
+        console.log(translations['paused']); 
+        speakMessage(translations['paused']); 
+        playPauseButton.textContent = '' + translations['play']; 
     }
 });
 
@@ -2461,7 +2669,8 @@ document.getElementById('modalPrevButton').addEventListener('click', () => {
     updateTrackName();
     highlightCurrentSong(); 
     const songName = extractSongName(songs[currentSongIndex]);
-    showLogMessage(`上一首：${songName}`);
+    showLogMessage(`${translations['previous_song1']} ${songName}`);
+    speakMessage(translations['previous_song1']);
 });
 
 document.getElementById('modalNextButton').addEventListener('click', () => {
@@ -2474,16 +2683,17 @@ document.getElementById('modalNextButton').addEventListener('click', () => {
     updateTrackName();
     highlightCurrentSong(); 
     const songName = extractSongName(songs[currentSongIndex]);
-    showLogMessage(`下一首：${songName}`);
+    showLogMessage(`${translations['next_song1']} ${songName}`);
+    speakMessage(translations['next_song1']);
 });
 
 function updateTrackName() {
     if (songs.length > 0) {
         const currentSongUrl = songs[currentSongIndex];
         const trackName = extractSongName(currentSongUrl);
-        document.getElementById('trackName').textContent = trackName || '未知歌曲';
+        document.getElementById('trackName').textContent = trackName || translations['unknown_song'];
     } else {
-        document.getElementById('trackName').textContent = '没有歌曲';
+        document.getElementById('trackName').textContent = translations['no_songs']; 
     }
 }
 
@@ -2501,21 +2711,21 @@ audioPlayer.addEventListener('ended', () => {
     updateTrackName();
     highlightCurrentSong(); 
     const songName = extractSongName(songs[currentSongIndex]);
-    showLogMessage(`自动切换到：${songName}`);
+    showLogMessage(`${translations['auto_switch']} ${songName}`); 
 });
 
 document.getElementById('modalRewindButton').addEventListener('click', () => {
     audioPlayer.currentTime = Math.max(audioPlayer.currentTime - 10, 0);
-    console.log('快退 10 秒');
+    console.log(translations['rewind_10_seconds']);
     savePlayerState();
-    showLogMessage('快退 10 秒');
+    showLogMessage(translations['rewind_10_seconds']);
 });
 
 document.getElementById('modalFastForwardButton').addEventListener('click', () => {
     audioPlayer.currentTime = Math.min(audioPlayer.currentTime + 10, audioPlayer.duration || Infinity);
-    console.log('快进 10 秒');
+    console.log(translations['fast_forward_10_seconds']); 
     savePlayerState();
-    showLogMessage('快进 10 秒');
+    showLogMessage(translations['fast_forward_10_seconds']); 
 });
 
 const loopButton = document.getElementById('modalLoopButton');
@@ -2523,16 +2733,16 @@ loopButton.addEventListener('click', () => {
     isLooping = !isLooping;
     
     if (isLooping) {
-        loopButton.textContent = "🔁 循环";
-        console.log('循环播放');
-        showLogMessage('循环播放');
-        speakMessage('循环播放');
+        loopButton.textContent = "" + translations['loop']; 
+        console.log(translations['looping']); 
+        showLogMessage(translations['looping']); 
+        speakMessage(translations['looping']); 
         audioPlayer.loop = true;
     } else {
-        loopButton.textContent = "🔄 顺序";
-        console.log('顺序播放');
-        showLogMessage('顺序播放');
-        speakMessage('顺序播放');
+        loopButton.textContent = "🔄" + translations['sequential']; 
+        console.log(translations['sequential_playing']); 
+        showLogMessage(translations['sequential_playing']); 
+        speakMessage(translations['sequential_playing']); 
         audioPlayer.loop = false;
     }
 });
@@ -2551,7 +2761,7 @@ function startHourlyAlert() {
             isReportingTime = true;
 
             const timeAnnouncement = new SpeechSynthesisUtterance(`整点报时，现在是北京时间 ${hours} 点整`);
-            timeAnnouncement.lang = 'zh-CN';
+            timeAnnouncement.lang = currentLang;
             speechSynthesis.speak(timeAnnouncement);
 
             console.log(`整点报时：现在是北京时间 ${hours} 点整`);
@@ -2618,7 +2828,7 @@ function clearExpiredPlayerState() {
 
         if (stateAge > expirationTime) {
             localStorage.removeItem('playerState');
-            console.log('播放状态已过期，已清除');
+            console.log(translations['player_state_expired']); 
         }
     }
 }
@@ -2631,7 +2841,7 @@ document.getElementById('clearStorageBtn').addEventListener('click', function() 
     localStorage.removeItem('playerState');
     localStorage.removeItem('songOrder'); 
     loadDefaultPlaylist(); 
-    document.getElementById('modalPlayPauseButton').textContent = '▶ 播放';
+    document.getElementById('modalPlayPauseButton').textContent = '▶ ' + translations['play'];
     alert('Player state cleared!');
 });
 
@@ -2648,10 +2858,10 @@ function restorePlayerState() {
         loadSong(currentSongIndex);
         if (state.isPlaying) {
             isPlaying = true;
-            playPauseButton.textContent = '⏸️ 暂停';
+            playPauseButton.textContent = '⏸️ ' + translations['pause']; 
             audioPlayer.currentTime = state.currentTime || 0;
             audioPlayer.play().catch(error => {
-                console.error('恢复播放失败:', error);
+                console.error(translations['restore_play_error'], error);
             });
         }
         console.log(`恢复播放: ${state.lastPlayedSong}，时间戳: ${new Date(state.timestamp).toLocaleString()}`);
@@ -2848,8 +3058,8 @@ window.addEventListener('keydown', function(event) {
             audioPlayer.play();
         }
         const songName = getSongName(songs[currentSongIndex]);
-        showLogMessage(`上一首：${songName}`);
-        speakMessage('上一首');
+        showLogMessage(`${translations['previous_song1']}: ${songName}`);
+        speakMessage(translations['previous_song1']);
         updateTrackName();
     } else if (event.key === 'ArrowDown') {
         currentSongIndex = (currentSongIndex + 1) % songs.length;
@@ -2859,27 +3069,27 @@ window.addEventListener('keydown', function(event) {
             audioPlayer.play();
         }
         const songName = getSongName(songs[currentSongIndex]);
-        showLogMessage(`下一首：${songName}`);
-        speakMessage('下一首');
+        showLogMessage(`${translations['next_song1']}: ${songName}`);
+        speakMessage(translations['next_song1']);
         updateTrackName();
     } else if (event.key === 'ArrowLeft') {
         audioPlayer.currentTime = Math.max(audioPlayer.currentTime - 10, 0);
-        console.log('快退 10 秒');
+        console.log(translations['rewind_10_seconds']);
         savePlayerState();
-        showLogMessage('快退 10 秒');
+        showLogMessage(translations['rewind_10_seconds']);
     } else if (event.key === 'ArrowRight') {
         audioPlayer.currentTime = Math.min(audioPlayer.currentTime + 10, audioPlayer.duration || Infinity);
-        console.log('快进 10 秒');
+        console.log(translations['fast_forward_10_seconds']);
         savePlayerState();
-        showLogMessage('快进 10 秒');
+        showLogMessage(translations['fast_forward_10_seconds']);
     } else if (event.key === 'Escape') {
         localStorage.removeItem('playerState');
         currentSongIndex = 0;
         loadSong(currentSongIndex);
         savePlayerState();
-        console.log('恢复到第一首');
-        showLogMessage('恢复到第一首');
-        speakMessage('已返回播放列表的第一首');
+        console.log(translations['reset_to_first_song']);
+        showLogMessage(translations['reset_to_first_song']);
+        speakMessage(translations['reset_to_first_song']);
         if (isPlaying) {
             audioPlayer.play();
         }
@@ -2888,18 +3098,18 @@ window.addEventListener('keydown', function(event) {
             audioPlayer.pause();
             isPlaying = false;
             savePlayerState();
-            console.log('暂停播放');
-            showLogMessage('暂停播放');
-            speakMessage('暂停播放');
-            playPauseButton.textContent = '▶ 播放';
+            console.log(translations['pause_play']);
+            showLogMessage(translations['pause_play']);
+            speakMessage(translations['pause_play']);
+            playPauseButton.textContent = '▶ ' + translations['play']; 
         } else {
             audioPlayer.play().then(() => {
                 isPlaying = true;
                 savePlayerState();
-                console.log('开始播放');
-                showLogMessage('开始播放');
-                speakMessage('开始播放');
-                playPauseButton.textContent = '⏸️ 暂停';
+                console.log(translations['start_play']);
+                showLogMessage(translations['start_play']);
+                speakMessage(translations['start_play']);
+                playPauseButton.textContent = '⏸️ ' + translations['pause']; 
             }).catch(error => {
                 console.log('播放失败:', error);
             });
@@ -2908,17 +3118,17 @@ window.addEventListener('keydown', function(event) {
         isLooping = !isLooping;
         const loopButton = document.getElementById('modalLoopButton');
         if (isLooping) {
-            loopButton.textContent = "🔁 循环";
+            loopButton.textContent = "🔁 " + translations['loop']; 
             audioPlayer.loop = true;
-            console.log('循环播放');
-            showLogMessage('循环播放');
-            speakMessage('循环播放');
+            console.log(translations['loop_play']);
+            showLogMessage(translations['loop_play']);
+            speakMessage(translations['loop_play']);
         } else {
-            loopButton.textContent = "🔄 顺序";
+            loopButton.textContent = "🔄 " + translations['sequential']; 
             audioPlayer.loop = false;
-            console.log('顺序播放');
-            showLogMessage('顺序播放');
-            speakMessage('顺序播放');
+            console.log(translations['sequential_play']);
+            showLogMessage(translations['sequential_play']);
+            speakMessage(translations['sequential_play']);
         }
     }
 });
@@ -2928,18 +3138,18 @@ window.addEventListener('keydown', function(event) {
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="urlModalLabel">更新播放列表</h5>
+                <h5 class="modal-title" id="urlModalLabel" data-translate="urlModalLabel">Update Playlist</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form method="POST">
                     <div class="mb-3">
-                        <label for="new_url" class="form-label">自定义播放列表</label>
+                        <label for="new_url" class="form-label" data-translate="customUrlLabel">Custom Playlist URL</label>
                         <input type="text" id="new_url" name="new_url" class="form-control" value="<?php echo htmlspecialchars($new_url); ?>" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">保存</button>
-                    <button type="button" id="resetButton" class="btn btn-secondary ms-2">恢复默认</button>
-                    <button type="button" class="btn btn-secondary ms-2" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary" data-translate="saveButton">Save</button>
+                    <button type="button" id="resetButton" class="btn btn-secondary ms-2" data-translate="resetButton">Restore Default</button>
+                    <button type="button" class="btn btn-secondary ms-2" data-bs-dismiss="modal" data-translate="cancelButton">Cancel</button>
                 </form>
             </div>
         </div>
@@ -2947,93 +3157,97 @@ window.addEventListener('keydown', function(event) {
 </div>
 
 <script>
-    document.addEventListener('keydown', function(event) {
-        if (event.ctrlKey && event.shiftKey && event.key === 'V') {
-            var urlModal = new bootstrap.Modal(document.getElementById('urlModal'));
-            urlModal.show();
-            speakMessage('打开定制播放列表');
-        }
-    });
+document.addEventListener('keydown', function(event) {
+    if (event.ctrlKey && event.shiftKey && event.key === 'V') {
+        var urlModal = new bootstrap.Modal(document.getElementById('urlModal'));
+        urlModal.show();
+        speakMessage(translations["openCustomPlaylist"]);
+    }
+});
 
-    document.getElementById('resetButton').addEventListener('click', function() {
-        fetch('', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
+document.getElementById('resetButton').addEventListener('click', function() {
+    fetch('', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
         body: 'reset_default=true'
     })
-        .then(response => response.text())  
-        .then(data => {
-            var urlModal = bootstrap.Modal.getInstance(document.getElementById('urlModal'));
-            urlModal.hide();
+    .then(response => response.text())  
+    .then(data => {
+        var urlModal = bootstrap.Modal.getInstance(document.getElementById('urlModal'));
+        urlModal.hide();
 
-            document.getElementById('new_url').value = '<?php echo $default_url; ?>';
+        document.getElementById('new_url').value = '<?php echo $default_url; ?>';
 
-            showNotification('恢复默认链接成功！');
-        })
-        .catch(error => {
-            console.error('恢复默认链接时出错:', error);
-            showNotification('恢复默认链接时出错');
-        });
+        showNotification(translations['restoreSuccess']);
+    })
+    .catch(error => {
+        console.error('恢复默认链接时出错:', error);
+        showNotification(translations['restoreError']);
     });
+});
 
-    function showNotification(message) {
-        var notification = document.createElement('div');
-        notification.style.position = 'fixed';
-        notification.style.top = '10px';
-        notification.style.right = '30px';
-        notification.style.backgroundColor = '#4CAF50';
-        notification.style.color = '#fff';
-        notification.style.padding = '10px';
-        notification.style.borderRadius = '5px';
-        notification.style.zIndex = '9999';
-        notification.innerText = message;
+function showNotification(message) {
+    var notification = document.createElement('div');
+    notification.style.position = 'fixed';
+    notification.style.top = '10px';
+    notification.style.right = '30px';
+    notification.style.backgroundColor = '#4CAF50';
+    notification.style.color = '#fff';
+    notification.style.padding = '10px';
+    notification.style.borderRadius = '5px';
+    notification.style.zIndex = '9999';
+    notification.innerText = message;
 
-        document.body.appendChild(notification);
+    document.body.appendChild(notification);
 
-        setTimeout(function() {
-            notification.style.display = 'none';
-        }, 5000); 
-    }
+    setTimeout(function() {
+        notification.style.display = 'none';
+    }, 5000); 
+}
 </script>
 
 <div class="modal fade" id="keyHelpModal" tabindex="-1" aria-labelledby="keyHelpModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="keyHelpModalLabel">键盘操作说明</h5>
+                <h5 class="modal-title" id="keyHelpModalLabel" data-translate="keyHelpModalLabel">Keyboard Shortcuts</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <div class="alert alert-warning d-flex align-items-center" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong data-translate="attention"></strong> 
+                    <span data-translate="functionIssueMessage"></span>
+                </div>
                 <ul>
-                    <li><strong>鼠标左键:</strong> 双击打开播放器界面</li>
-                    <li><strong>F9键:</strong> 切换播放/暂停</li>
-                    <li><strong>上下箭头键:</strong> 切换上一首/下一首</li>
-                    <li><strong>左右箭头键:</strong> 快进/快退 10 秒</li>
-                    <li><strong>ESC键:</strong> 返回播放列表的第一首</li>
-                    <li><strong>F2键:</strong> 切换循环播放和顺序播放模式</li>
-                    <li><strong>F8键:</strong> 开启网站连通性检查</li>
-                    <li><strong>F4键:</strong> 开启天气信息播报</li>
-                    <li><strong>Ctrl + F6键:</strong> 启动/停止雪花动画 </li>
-                    <li><strong>Ctrl + F7键:</strong> 启动/停止方块灯光动画 </li>
-                    <li><strong>Ctrl + F10键:</strong> 启动/停止方块动画 </li>
-                    <li><strong>Ctrl + F11键:</strong> 启动/停止光点动画 </li>
-                    <li><strong>Ctrl + Shift + Q键:</strong> 打开控制面板</li>
-                    <li><strong>Ctrl + Shift + C键:</strong> 清空缓存数据</li>
-                    <li><strong>Ctrl + Shift + V键:</strong> 定制播放列表</li>
-                    <li><strong>Ctrl + Shift + X键:</strong> 设置城市</li>
+                    <li><strong data-translate="f9Key">F9 Key:</strong></li>
+                    <li><strong data-translate="arrowUpDown">Up/Down Arrow Keys:</strong></li>
+                    <li><strong data-translate="arrowLeftRight">Left/Right Arrow Keys:</strong></li>
+                    <li><strong data-translate="escKey">ESC Key:</strong></li>
+                    <li><strong data-translate="f2Key">F2 Key:</strong></li>
+                    <li><strong data-translate="f8Key">F8 Key:</strong></li>
+                    <li><strong data-translate="f4Key">F4 Key:</strong></li>
+                    <li><strong data-translate="ctrlF6">Ctrl + F6:</strong></li>
+                    <li><strong data-translate="ctrlF7">Ctrl + F7:</strong></li>
+                    <li><strong data-translate="ctrlF10">Ctrl + F10:</strong></li>
+                    <li><strong data-translate="ctrlF11">Ctrl + F11:</strong></li>
+                    <li><strong data-translate="ctrlShiftQ">Ctrl + Shift + Q:</strong></li>
+                    <li><strong data-translate="ctrlShiftC">Ctrl + Shift + C:</strong></li>
+                    <li><strong data-translate="ctrlShiftV">Ctrl + Shift + V:</strong></li>
+                    <li><strong data-translate="ctrlShiftX">Ctrl + Shift + X:</strong></li>
                 </ul>
                 <div class="sing-box-section mt-4">
-                    <h5>Sing-box启动提示</h5>
+                    <h5 data-translate="singBoxStartupTips">Sing-box Startup Tips</h5>
                     <ul>
-                    <li>如遇启动失败，请前往文件管理 ⇨ 更新数据库 ⇨ 下载 cache.db 缓存数据。</li>
-                    <li>启动了无法联网，请前往防火墙设置 ⇨ 出站/入站/转发 ⇨ 接受  ⇨  保存应用</li>
+                    <li data-translate="startupFailure">If startup fails, go to File Management ⇨ Update Database ⇨ Download cache.db</li>
+                    <li data-translate="startupNetworkIssue">If unable to connect, go to Firewall Settings ⇨ Outbound/Inbound/Forward ⇨ Accept ⇨ Save Application</li>
                 </ul>
             </div>
-                </div>
+            </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-translate="cancelButton">Cancel</button>
             </div>
         </div>
     </div>
@@ -3043,16 +3257,16 @@ window.addEventListener('keydown', function(event) {
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="cityModalLabel">设置城市</h5>
+                <h5 class="modal-title" id="cityModalLabel" data-translate="cityModalLabel">Set City</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <label for="city-input">请输入城市名称：</label>
-                <input type="text" id="city-input" class="form-control" placeholder="请输入城市名称">
+                <label for="city-input" data-translate="cityInputLabel">Enter city name:</label>
+                <input type="text" id="city-input" class="form-control" placeholder="Enter city name">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" id="saveCityBtn">保存城市</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-translate="cancelButton">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveCityBtn" data-translate="saveCityButton">Save City</button>
             </div>
         </div>
     </div>
@@ -3072,7 +3286,7 @@ window.addEventListener('keydown', function(event) {
 
     function speakMessage(message) {
         const utterance = new SpeechSynthesisUtterance(message);
-        utterance.lang = 'zh-CN';  
+        utterance.lang = currentLang;  
         speechSynthesis.speak(utterance);
     }
 
@@ -3144,7 +3358,7 @@ let weatherEnabled = true;
 
 function speakMessage(message) {
     const utterance = new SpeechSynthesisUtterance(message);
-    utterance.lang = 'zh-CN';
+    utterance.lang = currentLang;
     speechSynthesis.speak(utterance);
 }
 
@@ -3884,41 +4098,38 @@ function speakWeather(weather) {
   <div class="modal-dialog modal-xl">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="widthModalLabel">调整容器宽度</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title" id="widthModalLabel" data-translate="adjust_container_width">Adjust Container Width</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"</button>
       </div>
       <div class="modal-body">
-    <div class="alert alert-warning d-flex align-items-center" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        变更后如未生效，请清理浏览器缓存后刷新页面！
-    </div>
-        <label for="containerWidth" class="form-label">页面宽度</label>
+        <div class="alert alert-warning d-flex align-items-center" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span data-translate="warning_message">If changes do not take effect, please clear your browser cache and refresh the page!</span>
+        </div>
+        <label for="containerWidth" class="form-label" data-translate="page_width">Page Width</label>
         <input type="range" class="form-range" name="containerWidth" id="containerWidth" min="800" max="5400" step="50" value="1800" style="width: 100%;">
-        <div id="widthValue" class="mt-2" style="color: #FF00FF;">当前宽度: 1800px</div>
+        <div id="widthValue" class="mt-2" style="color: #FF00FF;" data-translate="current_width">Current Width: 1800px</div>
 
-        <label for="modalMaxWidth" class="form-label mt-4">弹窗最大宽度</label>
+        <label for="modalMaxWidth" class="form-label mt-4" data-translate="modal_max_width">Modal Max Width</label>
         <input type="range" class="form-range" name="modalMaxWidth" id="modalMaxWidth" min="1400" max="5400" step="50" value="1400" style="width: 100%;">
-        <div id="modalWidthValue" class="mt-2" style="color: #00FF00;">当前最大宽度: 1400px</div>
+        <div id="modalWidthValue" class="mt-2" style="color: #00FF00;" data-translate="current_max_width">Current Max Width: 1400px</div>
 
         <div class="form-check mt-3">
             <input class="form-check-input" type="checkbox" id="group1Background">
-            <label class="form-check-label" for="group1Background">
-                启用透明下拉选择框、表单选择和信息背景
-            </label>
+            <label class="form-check-label" for="group1Background" data-translate="enable_transparent_dropdown">Enable transparent dropdowns, form selections, and info backgrounds</label>
         </div>
         <div class="form-check mt-3">
             <input class="form-check-input" type="checkbox" id="bodyBackground">
-            <label class="form-check-label" for="bodyBackground">
-                启用透明主体背景
-            </label>
+            <label class="form-check-label" for="bodyBackground" data-translate="enable_transparent_body">Enable transparent body background</label>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-translate="close">Close</button>
       </div>
     </div>
   </div>
 </div>
+
 <script>
 const slider = document.getElementById("containerWidth");
 const widthValue = document.getElementById("widthValue");
@@ -3934,7 +4145,7 @@ function updateSliderColor(value, slider, valueElement) {
     
     slider.style.background = `linear-gradient(to right, rgb(${red}, ${green}, 255), rgb(${255 - red}, ${green}, ${255 - red}))`;
     slider.style.setProperty('--thumb-color', `rgb(${red}, ${green}, 255)`);
-    valueElement.textContent = `当前宽度: ${value}px`;
+    valueElement.textContent = translations['current_width'].replace('%s', value);
     valueElement.style.color = `rgb(${red}, ${green}, 255)`;  
 }
 
@@ -3956,7 +4167,7 @@ slider.oninput = function() {
     localStorage.setItem('containerWidth', slider.value);  
 
     sendCSSUpdate();
-    showNotification(`页面宽度已更新! 当前宽度: ${slider.value}px`);
+    showNotification(translations['page_width_updated'].replace('%s', slider.value));
 };
 
 modalSlider.oninput = function() {
@@ -3964,7 +4175,7 @@ modalSlider.oninput = function() {
     localStorage.setItem('modalMaxWidth', modalSlider.value);  
 
     sendCSSUpdate();
-    showNotification(`弹窗宽度已更新! 当前最大宽度: ${modalSlider.value}px`);
+    showNotification(translations['modal_width_updated'].replace('%s', modalSlider.value));
 };
 
 function sendCSSUpdate() {
@@ -3991,12 +4202,12 @@ function sendCSSUpdate() {
 
 group1Checkbox.onchange = function() {
     sendCSSUpdate();
-    showNotification(group1Checkbox.checked ? "已启用透明下拉选择框、表单选择和信息背景" : "已禁用透明禁用、表单选择和信息背景");
+    showNotification(group1Checkbox.checked ? translations['enable_transparent_dropdown'] : translations['disable_transparent_dropdown']);
 };
 
 bodyBackgroundCheckbox.onchange = function() {
     sendCSSUpdate();
-    showNotification(bodyBackgroundCheckbox.checked ? "已启用透明主体背景" : "已禁用透明主体背景");
+    showNotification(bodyBackgroundCheckbox.checked ? translations['enable_transparent_body'] : translations['disable_transparent_body']);
 };
 
 function showNotification(message) {
@@ -4028,162 +4239,164 @@ toggleModalButton.onclick = function() {
   <div class="modal-dialog modal-xl">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="colorModalLabel">选择主题颜色</h5>
+        <h5 class="modal-title" id="colorModalLabel" data-translate="adjust_container_width">Select Theme Color</h5>
         <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
       </div>
       <div class="modal-body">
         <form method="POST" action="theme.php" id="themeForm" enctype="multipart/form-data">
           <div class="row">
             <div class="col-md-4 mb-3">
-              <label for="primaryColor" class="form-label">导航栏文本色</label>
+              <label for="primaryColor" class="form-label" data-translate="navbar_text_color">Navbar Text Color</label>
               <input type="color" class="form-control" name="primaryColor" id="primaryColor" value="#30e8dc">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="secondaryColor" class="form-label">导航栏悬停文本色</label>
+              <label for="secondaryColor" class="form-label" data-translate="navbar_hover_text_color">Navbar Hover Text Color</label>
               <input type="color" class="form-control" name="secondaryColor" id="secondaryColor" value="#00ffff">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="bodyBgColor" class="form-label">主背景色</label>
+              <label for="bodyBgColor" class="form-label" data-translate="body_background_color">Body Background Color</label>
               <input type="color" class="form-control" name="bodyBgColor" id="bodyBgColor" value="#23407e">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="infoBgSubtle" class="form-label">信息背景色</label>
+              <label for="infoBgSubtle" class="form-label" data-translate="info_background_color">Info Background Color</label>
               <input type="color" class="form-control" name="infoBgSubtle" id="infoBgSubtle" value="#23407e">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="backgroundColor" class="form-label">表格背景色</label>
+              <label for="backgroundColor" class="form-label" data-translate="table_background_color">Table Background Color</label>
               <input type="color" class="form-control" name="backgroundColor" id="backgroundColor" value="#20cdd9">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="primaryBorderSubtle" class="form-label">表格文本色</label>
+              <label for="primaryBorderSubtle" class="form-label" data-translate="table_text_color">Table Text Color</label>
               <input type="color" class="form-control" name="primaryBorderSubtle" id="primaryBorderSubtle" value="#1815d1">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="checkColor" class="form-label">主标题文本色 1</label>
+              <label for="checkColor" class="form-label" data-translate="main_title_text_color_1">Main Title Text Color 1</label>
               <input type="color" class="form-control" name="checkColor" id="checkColor" value="#f8f9fa">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="labelColor" class="form-label">主标题文本色 2</label>
+              <label for="labelColor" class="form-label" data-translate="main_title_text_color_2">Main Title Text Color 2</label>
               <input type="color" class="form-control" name="labelColor" id="labelColor" value="#248cf5">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="lineColor" class="form-label">行数文本色</label>
+              <label for="lineColor" class="form-label" data-translate="row_text_color">Row Text Color</label>
               <input type="color" class="form-control" name="lineColor" id="lineColor" value="#f515f9">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="controlColor" class="form-label">输入框文本色 1</label>
+              <label for="controlColor" class="form-label" data-translate="input_text_color_1">Input Text Color 1</label>
               <input type="color" class="form-control" name="controlColor" id="controlColor" value="#f8f9fa">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="placeholderColor" class="form-label">输入框文本色 2</label>
+              <label for="placeholderColor" class="form-label" data-translate="input_text_color_2">Input Text Color 2</label>
               <input type="color" class="form-control" name="placeholderColor" id="placeholderColor" value="#f8f9fa">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="disabledColor" class="form-label">显示框背景色</label>
+              <label for="disabledColor" class="class="form-label" data-translate="disabled_box_background_color">Disabled Box Background Color</label>
               <input type="color" class="form-control" name="disabledColor" id="disabledColor" value="#23407e">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="logTextColor" class="form-label">日志文本色</label>
+              <label for="logTextColor" class="form-label" data-translate="log_text_color">Log Text Color</label>
               <input type="color" class="form-control" name="logTextColor" id="logTextColor" value="#f8f9fa">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="selectColor" class="form-label">主边框背景色</label>
+              <label for="selectColor" class="form-label" data-translate="main_border_background_color">Main Border Background Color</label>
               <input type="color" class="form-control" name="selectColor" id="selectColor" value="#23407e">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="radiusColor" class="form-label">主边框文本色</label>
+              <label for="radiusColor" class="form-label" data-translate="main_border_background_color">Main Border Text Color</label>
               <input type="color" class="form-control" name="radiusColor" id="radiusColor" value="#28edf0">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="bodyColor" class="form-label">表格文本色 1</label>
+              <label for="bodyColor" class="form-label" data-translate="table_text_color_1">Table Text Color 1</label>
               <input type="color" class="form-control" name="bodyColor" id="bodyColor" value="#4eedf9">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="tertiaryColor" class="form-label">表格文本色 2</label>
+              <label for="tertiaryColor" class="form-label" data-translate="table_text_color_2">Table Text Color 2</label>
               <input type="color" class="form-control" name="tertiaryColor" id="tertiaryColor" value="#46e1ec">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="tertiaryRgbColor" class="form-label">表格文本色 3</label>
+              <label for="tertiaryRgbColor" class="form-label" data-translate="table_text_color_3">Table Text Color 3</label>
               <input type="color" class="form-control" name="tertiaryRgbColor" id="tertiaryRgbColor" value="#df38f5">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="ipColor" class="form-label">IP 文本色</label>
+              <label for="ipColor" class="form-label" data-translate="ip_text_color">IP Text Color</label>
               <input type="color" class="form-control" name="ipColor" id="ipColor" value="#09B63F">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="ipipColor" class="form-label">运营商文本色</label>
+              <label for="ipipColor" class="form-label" data-translate="isp_text_color">ISP Text Color</label>
               <input type="color" class="form-control" name="ipipColor" id="ipipColor" value="#ff69b4">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="detailColor" class="form-label">IP详情文本色</label>
+              <label for="detailColor" class="form-label" data-translate="ip_detail_text_color">IP Detail Text Color</label>
               <input type="color" class="form-control" name="detailColor" id="detailColor" value="#15d1bb">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="outlineColor" class="form-label">按键色（青色）</label>
+              <label for="outlineColor" class="form-label" data-translate="button_color_cyan">Button Color (Cyan)</label>
               <input type="color" class="form-control" name="outlineColor" id="outlineColor" value="#0dcaf0">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="successColor" class="form-label">按键色（绿色）</label>
+              <label for="successColor" class="form-label" data-translate="button_color_green">Button Color (Green)</label>
               <input type="color" class="form-control" name="successColor" id="successColor" value="#28a745">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="infoColor" class="form-label">按键色（蓝色）</label>
+              <label for="infoColor" class="form-label" data-translate="button_color_blue">Button Color (Blue)</label>
               <input type="color" class="form-control" name="infoColor" id="infoColor" value="#0ca2ed">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="warningColor" class="form-label">按键色（黄色）</label>
+              <label for="warningColor" class="form-label" data-translate="button_color_yellow">Button Color (Yellow)</label>
               <input type="color" class="form-control" name="warningColor" id="warningColor" value="#ffc107">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="pinkColor" class="form-label">按键色（粉红色）</label>
+              <label for="pinkColor" class="form-label" data-translate="button_color_pink">Button Color (Pink)</label>
               <input type="color" class="form-control" name="pinkColor" id="pinkColor" value="#f82af2">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="dangerColor" class="form-label">按键色（红色）</label>
+              <label for="dangerColor" class="form-label" data-translate="button_color_red">Button Color (Red)</label>
               <input type="color" class="form-control" name="dangerColor" id="dangerColor" value="#dc3545">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="heading1Color" class="form-label">标题色 1</label>
+              <label for="heading1Color" class="form-label" data-translate="heading_color_1">Heading Color 1</label>
               <input type="color" class="form-control" name="heading1Color" id="heading1Color" value="#21e4f2">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="heading2Color" class="form-label">标题色 2</label>
+              <label for="heading2Color" class="form-label" data-translate="heading_color_2">Heading Color 2</label>
               <input type="color" class="form-control" name="heading2Color" id="heading2Color" value="#65f1fb">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="heading3Color" class="form-label">标题色 3</label>
+              <label for="heading3Color" class="form-label" data-translate="heading_color_3">Heading Color 3</label>
               <input type="color" class="form-control" name="heading3Color" id="heading3Color" value="#ffcc00">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="heading4Color" class="form-label">标题色 4</label>
+              <label for="heading4Color" class="form-label" data-translate="heading_color_4">Heading Color 4</label>
               <input type="color" class="form-control" name="heading4Color" id="heading4Color" value="#00fbff">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="heading5Color" class="form-label">标题色 5</label>
+              <label for="heading5Color" class="form-label" data-translate="heading_color_5">Heading Color 5</label>
               <input type="color" class="form-control" name="heading5Color" id="heading5Color" value="#ba13f6">
             </div>
             <div class="col-md-4 mb-3">
-              <label for="heading6Color" class="form-label">标题色 6</label>
+              <label for="heading6Color" class="form-label" data-translate="heading_color_6">Heading Color 6</label>
               <input type="color" class="form-control" name="heading6Color" id="heading6Color" value="#00ffff">
             </div>
           </div>
           <div class="col-12 mb-3">
-            <label for="themeName" class="form-label">自定义主题名称</label>
+            <label for="themeName" class="form-label" data-translate="custom_theme_name">Custom Theme Name</label>
             <input type="text" class="form-control" name="themeName" id="themeName" value="transparent">
           </div>
       <div class="d-flex flex-wrap justify-content-center align-items-center mb-3 gap-2">
-          <button type="submit" class="btn btn-primary">保存主题</button>
-          <button type="button" class="btn btn-success" id="resetButton" onclick="clearCache()">恢复默认值</button>
-          <button type="button" class="btn btn-info" id="exportButton">立即备份</button>
-          <button type="button" class="btn btn-warning" id="restoreButton">恢复备份</button> 
+          <button type="submit" class="btn btn-primary" data-translate="save_theme">Save Theme</button>
+          <button type="button" class="btn btn-success" id="resetButton" onclick="clearCache()" data-translate="restore_default">Restore Default</button>
+          <button type="button" class="btn btn-info" id="exportButton" data-translate="backup_now">Backup Now</button>
+          <button type="button" class="btn btn-warning" id="restoreButton" data-translate="restore_backup">Restore Backup</button>
           <input type="file" id="importButton" class="form-control" accept="application/json" style="display: none;"> 
-          <button type="button" class="btn btn-pink" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-pink" data-bs-dismiss="modal" data-translate="cancel">Cancel</button>
       </div>
         </form>
       </div>
     </div>
   </div>
 </div>
+
+
 
 <style>
 input[type="range"] {
@@ -4495,32 +4708,32 @@ input[type="range"]:focus {
     <div class='modal-dialog modal-xl'>
         <div class='modal-content'>
             <div class='modal-header'>
-                <h5 class='modal-title' id='filesModalLabel'>上传并管理背景图片/视频/音频</h5>
+                <h5 class='modal-title' id='filesModalLabel' data-translate='uploadManageTitle'>Upload and Manage Background Images/Videos/Audio</h5>
                 <button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>
             </div>
             <div class='modal-body'>
                 <div class='mb-4 d-flex flex-wrap gap-2 justify-content-start align-items-center'>
                     <div>
-                        <button type="button" class="btn btn-success me-2" id="selectToggleBtn" onclick="toggleSelectAll()"><i class="fas fa-check-square"></i> 全选</button>
-                        <button type="button" class="btn btn-danger me-2" onclick="batchDelete()"><i class="fas fa-trash-alt"></i> 批量删除</button>
-                        <button type='button' class='btn btn-primary me-2' onclick='openVideoPlayerModal()' title="勾选添加到播放列表"><i class='fas fa-play'></i> 播放视频</button>
+                        <button type="button" class="btn btn-success me-2" id="selectToggleBtn" onclick="toggleSelectAll()"><i class="fas fa-check-square"></i> <span data-translate='selectAll'>Select All</span></button>
+                        <button type="button" class="btn btn-danger me-2" onclick="batchDelete()"><i class="fas fa-trash-alt"></i> <span data-translate='batchDelete'>Batch Delete</span></button>
+                        <button type='button' class='btn btn-primary me-2' onclick='openVideoPlayerModal()' title="勾选添加到播放列表"><i class='fas fa-play'></i> <span data-translate='playVideo'>Play Video</span></button>
                         <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#newuploadModal">
-                            <i class="fas fa-cloud-upload-alt"></i> 上传文件
+                            <i class="fas fa-cloud-upload-alt"></i> <span data-translate='uploadFile'>Upload File</span>
                         </button>
                         <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addDriveFileModal">
-                            <i class="fas fa-link"></i> 添加网盘文件
+                            <i class="fas fa-link"></i> <span data-translate='addDriveFile'>Add Drive File</span>
                         </button>
-                        <button type="button" class="btn btn-danger me-2 delete-btn" onclick="setBackground('', '', 'remove')"><i class="fas fa-trash"></i> 删除背景</button>
-                        <span id="selectedCount" class="ms-2" style="display: none;">已选中 0 个文件，总计 0 MB</span>
+                        <button type="button" class="btn btn-danger me-2 delete-btn" onclick="setBackground('', '', 'remove')"><i class="fas fa-trash"></i> <span data-translate='removeBackground'>Remove Background</span></button>
+                        <span id="selectedCount" class="ms-2" style="display: none;" data-translate="selectedCount">已选中 0 个文件，总计 0 MB</span>
                     </div>
                 </div>
                 <div class="btn-group mb-4" role="group" aria-label="File sections">
-                    <button type="button" class="btn btn-secondary" onclick="showSection('localFilesSection')">本地文件</button>
-                    <button type="button" class="btn btn-secondary" onclick="showSection('driveFilesSection')">网盘文件</button>
+                    <button type="button" class="btn btn-secondary" onclick="showSection('localFilesSection')" data-translate="localFiles">Local Files</button>
+                    <button type="button" class="btn btn-secondary" onclick="showSection('driveFilesSection')" data-translate="driveFiles">Drive Files</button>
                 </div>
                 <div id="fileSections">
                     <div id="localFilesSection" class="file-section active">
-                        <h5>本地文件</h5>
+                        <h5 data-translate="localFiles">本地文件</h5>
                         <table class="table table-bordered text-center">
                             <tbody id="fileTableBody">
                                 <?php
@@ -4603,7 +4816,7 @@ input[type="range"]:focus {
                                             $formattedFileSize = formatFileSize($fileSize);
                                             $fileUrl = '/nekobox/assets/Pictures/' . $file;
                                             $fileNameWithoutPrefix = getFileNameWithoutPrefix($file);
-                                            $fileTitle = "名称: $fileNameWithoutPrefix\n大小: $formattedFileSize";
+                                            $fileTitle = $langData[$currentLang]["name"] . ": $fileNameWithoutPrefix\n" . $langData[$currentLang]["size"] . ": $formattedFileSize";
 
                                             if ($fileCount % 5 == 0) {
                                                 echo "<tr>";
@@ -4626,31 +4839,31 @@ input[type="range"]:focus {
                                                           Your browser does not support the audio tag.
                                                       </audio>";
                                             } else {
-                                                echo "未知文件类型";
+                                                echo "<span data-translate='unknownFileType'>未知文件类型</span>";
                                             }
 
                                             echo "<div class='btn-container mt-2 d-flex align-items-center'>
                                                     <a href='?delete=" . htmlspecialchars($file, ENT_QUOTES) . "' onclick='return confirm(\"确定要删除吗?\")' class='icon-button btn-bordered' style='margin-right: 10px;'>
-                                                        <i class='fas fa-trash-alt'></i><span class='tooltip'>删除</span>
+                                                        <i class='fas fa-trash-alt'></i><span class='tooltip' data-translate='delete'>删除</span>
                                                     </a>
                                                     <button type='button' data-bs-toggle='modal' data-bs-target='#renameModal' onclick='document.getElementById(\"oldFileName\").value=\"" . htmlspecialchars($file, ENT_QUOTES) . "\"; document.getElementById(\"newFileName\").value=\"" . htmlspecialchars(getFileNameWithoutPrefix($file), ENT_QUOTES) . "\";' class='icon-button btn-bordered' style='margin-right: 10px;'>
-                                                        <i class='fas fa-edit'></i><span class='tooltip'>重命名</span>
+                                                        <i class='fas fa-edit'></i><span class='tooltip' data-translate='rename'>重命名</span>
                                                     </button>
                                                     <a href='$fileUrl' download class='icon-button btn-bordered' style='margin-right: 10px;'>
-                                                        <i class='fas fa-download'></i><span class='tooltip'>下载</span>
+                                                        <i class='fas fa-download'></i><span class='tooltip' data-translate='download'>下载</span>
                                                     </a>";
 
                                             if (isImage($file)) {
                                                 echo "<button type='button' onclick=\"setBackground('" . htmlspecialchars($file, ENT_QUOTES) . "', 'image')\" class='icon-button btn-bordered' style='margin-left: 10px;'>
-                                                        <i class='fas fa-image'></i><span class='tooltip'>设置图片背景</span>
+                                                        <i class='fas fa-image'></i><span class='tooltip' data-translate='setBackgroundImage'>设置图片背景</span>
                                                       </button>";
                                             } elseif (isVideo($file)) {
                                                 echo "<button type='button' onclick=\"setBackground('" . htmlspecialchars($file, ENT_QUOTES) . "', 'video')\" class='icon-button btn-bordered' style='margin-left: 10px;'>
-                                                        <i class='fas fa-video'></i><span class='tooltip'>设置视频背景</span>
+                                                        <i class='fas fa-video'></i><span class='tooltip' data-translate='setBackgroundVideo'>设置视频背景</span>
                                                       </button>";
                                             } elseif (isAudio($file)) {
                                                 echo "<button type='button' onclick=\"setBackground('" . htmlspecialchars($file, ENT_QUOTES) . "', 'audio')\" class='icon-button btn-bordered' style='margin-left: 10px;'>
-                                                        <i class='fas fa-music'></i><span class='tooltip'>设置背景音乐</span>
+                                                        <i class='fas fa-music'></i><span class='tooltip' data-translate='setBackgroundMusic'>设置背景音乐</span>
                                                       </button>";
                                             }
 
@@ -4673,7 +4886,7 @@ input[type="range"]:focus {
                         </table>
                     </div>
                     <div id="driveFilesSection" class="file-section">
-                        <h5>网盘文件</h5>
+                        <h5 data-translate="driveFilesTitle">网盘文件</h5>
                         <table class="table table-bordered text-center">
                             <tbody id="driveFileTableBody">
                                 <?php
@@ -4740,7 +4953,7 @@ input[type="range"]:focus {
                                                   Your browser does not support the audio tag.
                                               </audio>";
                                     } else {
-                                        echo "未知文件类型";
+                                        echo "<span data-translate='unknownFileType'>未知文件类型</span>";
                                     }
 
                                     echo "<div class='btn-container mt-2 d-flex align-items-center'>
@@ -4750,15 +4963,15 @@ input[type="range"]:focus {
 
                                     if (isImage($fileName)) {
                                         echo "<button type='button' onclick=\"setBackground('" . htmlspecialchars($fileUrl, ENT_QUOTES) . "', 'image')\" class='icon-button btn-bordered' style='margin-left: 10px;'>
-                                                <i class='fas fa-image'></i><span class='tooltip'>设置图片背景</span>
+                                                <i class='fas fa-image'></i><span class='tooltip' data-translate='setBackgroundImage'>设置图片背景</span>
                                               </button>";
                                     } elseif (isVideo($fileName)) {
                                         echo "<button type='button' onclick=\"setBackground('" . htmlspecialchars($fileUrl, ENT_QUOTES) . "', 'video')\" class='icon-button btn-bordered' style='margin-left: 10px;'>
-                                                <i class='fas fa-video'></i><span class='tooltip'>设置视频背景</span>
+                                                <i class='fas fa-video'></i><span class='tooltip' data-translate='setBackgroundVideo'>设置视频背景</span>
                                               </button>";
                                     } elseif (isAudio($fileName)) {
                                         echo "<button type='button' onclick=\"setBackground('" . htmlspecialchars($fileUrl, ENT_QUOTES) . "', 'audio')\" class='icon-button btn-bordered' style='margin-left: 10px;'>
-                                                <i class='fas fa-music'></i><span class='tooltip'>设置背景音乐</span>
+                                                <i class='fas fa-music'></i><span class='tooltip' data-translate='setBackgroundMusic'>设置背景音乐</span>
                                               </button>";
                                     }
 
@@ -4781,7 +4994,7 @@ input[type="range"]:focus {
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-translate="cancel">取消</button>
             </div>
         </div>
     </div>
@@ -4791,17 +5004,17 @@ input[type="range"]:focus {
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addDriveFileModalLabel">添加网盘文件</h5>
+                <h5 class="modal-title" id="addDriveFileModalLabel" data-translate="add_drive_file">Add Drive File</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form method="post">
                     <div class="form-group">
-                        <label for="driveFileUrl">网盘文件链接</label>
+                        <label for="driveFileUrl" data-translate="drive_file_link">Drive File URL</label>
                         <input type="text" class="form-control" id="driveFileUrl" name="driveFileUrl" required>
                     </div>
                     <div class="form-group mt-3">
-                        <button type="submit" class="btn btn-primary">添加</button>
+                        <button type="submit" class="btn btn-primary" data-translate="add">Add</button>
                     </div>
                 </form>
             </div>
@@ -4822,12 +5035,12 @@ input[type="range"]:focus {
     <div class="modal-dialog modal-xl" id="modalDialog" style="max-height: 100vh;">
         <div class="modal-content" style="height: 100%;">
             <div class="modal-header">
-                <h5 class="modal-title" id="videoPlayerModalLabel">媒体播放器</h5>
+                <h5 class="modal-title" id="videoPlayerModalLabel" data-translate="media_player">Media Player</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="toggle-container">
-                <button type="button" class="btn btn-outline-primary" onclick="showMediaContainer()">播放媒体</button>
-                <button type="button" class="btn btn-success" onclick="showPlaylistContainer()">播放列表</button>
+                <button type="button" class="btn btn-outline-primary" onclick="showMediaContainer()" data-translate="play_media">Play Media</button>
+                <button type="button" class="btn btn-success" onclick="showPlaylistContainer()" data-translate="playlist">Playlist</button>
             </div>
             <div class="modal-body">
                 <div class="media-container">
@@ -4836,14 +5049,14 @@ input[type="range"]:focus {
                     <img id="imageViewer" src="" style="display: none;">
                 </div>
                 <div class="playlist-container">
-                    <h5>播放列表</h5>
+                    <h5 data-translate="playlist">Playlist</h5>
                     <ul id="playlist"></ul>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary me-3" id="fullscreenButton" onclick="toggleFullscreen()">切换全屏</button>
-                <button type="button" class="btn btn-danger me-3" onclick="clearPlaylist()">清空播放列表</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary me-3" id="fullscreenButton" onclick="toggleFullscreen()" data-translate="toggle_fullscreen">Toggle Fullscreen</button>
+                <button type="button" class="btn btn-danger me-3" onclick="clearPlaylist()" data-translate="clear_playlist">Clear Playlist</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-translate="close">Close</button>
             </div>
         </div>
     </div>
@@ -4866,7 +5079,7 @@ function showPlaylistContainer() {
         <form id="renameForm" method="POST">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="renameModalLabel">重命名文件</h5>
+                    <h5 class="modal-title" id="renameModalLabel" data-translate="rename_file">Rename File</h5>
                     <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -4874,13 +5087,13 @@ function showPlaylistContainer() {
                 <div class="modal-body">
                     <input type="hidden" name="oldFileName" id="oldFileName">
                     <div class="form-group">
-                        <label for="newFileName">新文件名</label>
+                        <label for="newFileName" data-translate="new_file_name">New File Name</label>
                         <input type="text" class="form-control" id="newFileName" name="newFileName" required>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-translate="cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-translate="save">Save</button>
                 </div>
             </div>
         </form>
@@ -4891,30 +5104,30 @@ function showPlaylistContainer() {
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="newuploadModalLabel"><i class="fas fa-cloud-upload-alt"></i> 上传文件</h5>
+                <h5 class="modal-title" id="newuploadModalLabel" data-translate="upload_file"><i class="fas fa-cloud-upload-alt"></i> Upload File</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body text-center">
-                <h2 class="mb-3">上传图片/视频/音频</h2>
+                <h2 class="mb-3" data-translate="upload_image_video_audio">Upload Image/Video/Audio</h2>
                 <div class="alert alert-warning d-flex align-items-center" role="alert">
                     <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    OpenWRT 剩余空间: <?php echo $availableSpace; ?> MB
+                    OpenWRT Remaining Space: <?php echo $availableSpace; ?> MB
                 </div>
                 <form method="POST" action="download.php" enctype="multipart/form-data">
                     <div id="dropArea" class="mb-3">
                         <i id="uploadIcon" class="fas fa-cloud-upload-alt"></i>
-                        <p>拖拽文件到此区域，或点击图标选择文件。</p>
-                        <p>PHP上传文件会有大小限制，如遇上传失败可以手动上传文件到 /nekobox/assets/Pictures 目录</p>
+                        <p data-translate="drag_and_drop_or_click">Drag and drop files here, or click the icon to select files.</p>
+                        <p data-translate="php_upload_limit_notice">PHP upload files have a size limit. If upload fails, manually upload the files to /nekobox/assets/Pictures directory</p>
                     </div>
                     <input type="file" class="form-control mb-3" name="imageFile[]" id="imageFile" multiple style="display: none;">                   
-                    <button type="submit" class="btn btn-success mt-3" id="submitBtnModal">
-                        上传图片/视频
+                    <button type="submit" class="btn btn-success mt-3" id="submitBtnModal" data-translate="upload_image_video">
+                        Upload Image/Video
                     </button>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-warning" id="updatePhpConfig">更新 PHP 上传限制</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-translate="cancel">Cancel</button>
+                <button type="button" class="btn btn-warning" id="updatePhpConfig" data-translate="update_php_config">Update PHP Upload Limits</button>
             </div>
         </div>
     </div>
@@ -4939,10 +5152,11 @@ function showPlaylistContainer() {
     }
 
     document.addEventListener("fullscreenchange", function () {
+        const fullscreenButton = document.getElementById("fullscreenButton");
         if (document.fullscreenElement) {
-            fullscreenButton.innerText = "退出全屏";
+            fullscreenButton.innerText = langData[currentLang]['exit_fullscreen'];
         } else {
-            fullscreenButton.innerText = "切换全屏";
+            fullscreenButton.innerText = langData[currentLang]['toggle_fullscreen'];
         }
     });
 
@@ -5317,12 +5531,14 @@ document.addEventListener('DOMContentLoaded', function () {
 <script>
 function batchDelete() {
     const checkboxes = document.querySelectorAll('.file-checkbox:checked');
+    const translations = langData[currentLang] || langData['zh']; 
+
     if (checkboxes.length === 0) {
-        alert("请选择要删除的文件。");
+        alert(translations["selectFiles"] || "Please select files to delete.");
         return;
     }
 
-    if (!confirm("确定要删除选中的文件吗?")) {
+    if (!confirm(translations["confirmDelete"] || "Are you sure you want to delete the selected files?")) {
         return;
     }
 
@@ -5331,10 +5547,10 @@ function batchDelete() {
         fetch(`?delete=${encodeURIComponent(fileName)}`)
             .then(response => {
                 if (response.ok) {
-                    checkbox.closest('td').remove(); 
+                    checkbox.closest('td').remove();
                     updateSelectedCount();
                 } else {
-                    alert(`删除文件失败: ${fileName}`);
+                    alert(`${translations["deleteFailed"] || "Failed to delete file"}: ${fileName}`); 
                 }
             })
             .catch(error => console.error('Error:', error));
@@ -5347,7 +5563,11 @@ function toggleSelectAll() {
     var allSelected = Array.from(checkboxes).every(checkbox => checkbox.checked);
 
     checkboxes.forEach(checkbox => checkbox.checked = !allSelected);
-    selectToggleBtn.innerHTML = allSelected ? '<i class="fas fa-check-square"></i> 全选' : '<i class="fas fa-square"></i> 反选';
+
+    selectToggleBtn.innerHTML = allSelected
+        ? `<i class="fas fa-check-square"></i> ${langData[currentLang].select_all}`
+        : `<i class="fas fa-square"></i> ${langData[currentLang].deselect_all}`;
+
     updateSelectedCount();
 }
 
@@ -5358,19 +5578,16 @@ function updateSelectedCount() {
 
     var selectedCountElement = document.getElementById('selectedCount');
     selectedCountElement.style.display = selectedCount > 0 ? 'inline' : 'none';
-    selectedCountElement.textContent = `已选中 ${selectedCount} 个文件，总计 ${formatFileSize(totalSize)}`;
+    selectedCountElement.textContent = langData[currentLang].selected_files
+        .replace("{count}", selectedCount)
+        .replace("{size}", formatFileSize(totalSize));
 }
 
 function formatFileSize(size) {
-    if (size >= 1073741824) {
-        return (size / 1073741824).toFixed(2) + ' GB';
-    } else if (size >= 1048576) {
-        return (size / 1048576).toFixed(2) + ' MB';
-    } else if (size >= 1024) {
-        return (size / 1024).toFixed(2) + ' KB';
-    } else {
-        return size + ' bytes';
-    }
+    if (size < 1024) return `${size} B`;
+    else if (size < 1024 * 1024) return `${(size / 1024).toFixed(2)} KB`;
+    else if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(2)} MB`;
+    else return `${(size / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
 function sortFiles() {
@@ -5410,14 +5627,14 @@ function showRenameModal(event, fileName) {
 
 <script>
 document.getElementById("updatePhpConfig").addEventListener("click", function() {
-    if (confirm("确定要修改 PHP 上传限制吗？")) {
+    if (confirm(langData[currentLang]['confirm_update'])) {
         fetch("update_php_config.php", {
             method: "POST",
             headers: { "Content-Type": "application/json" }
         })
         .then(response => response.json())
         .then(data => alert(data.message))
-        .catch(error => alert("请求失败：" + error.message));
+        .catch(error => alert(langData[currentLang]['request_failed'] + error.message));
     }
 });
 </script>
