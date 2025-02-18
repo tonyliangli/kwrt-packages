@@ -123,7 +123,7 @@
  NAME:=advancedplus
  PKG_NAME:=luci-app-$(NAME)
  LUCI_TITLE:=LuCI support for Kucat theme setting by sirpdboy
--LUCI_DEPENDS:=+luci-compat +curl +wget +libustream-openssl
+-LUCI_DEPENDS:=+luci-compat +curl +wget
 +LUCI_DEPENDS:=+luci-compat +curl
  LUCI_PKGARCH:=all
  
@@ -165,3 +165,14 @@
    URL:=https://github.com/updateing/k3-screen-ctrl
  endef
 
+--- a/luci-app-packet-capture/Makefile
++++ b/luci-app-packet-capture/Makefile
+@@ -4,7 +4,7 @@
+ include $(TOPDIR)/rules.mk
+ 
+ LUCI_TITLE:=Packet capture application
+-LUCI_DEPENDS:=+luci-mod-admin-full +tcpdump +uhttpd-mod-ubus +coreutils +coreutils-timeout
++LUCI_DEPENDS:=+luci-mod-admin-full +tcpdump +coreutils +coreutils-timeout
+ 
+ PKG_MAINTAINER:=Wojciech Jowsa <wojciech.jowsa@gmail.com>
+ PKG_LICENSE:=Apache-2.0
