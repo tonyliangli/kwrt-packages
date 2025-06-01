@@ -6,12 +6,12 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=UnblockNeteaseMusic
 PKG_BASE_VERSION:=0.27.0
-PKG_RELEASE:=6
+PKG_RELEASE:=13
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/UnblockNeteaseMusic/server.git
 PKG_SOURCE_DATE:=2022-10-09
-PKG_SOURCE_VERSION:=b6ed5790037716282dd0b1b956c11614e4426ebe
+PKG_SOURCE_VERSION:=861ab787b6d4c4ea1ceeca585d28c63ceb4f5768
 PKG_MIRROR_HASH:=skip
 
 PKG_VERSION:=$(PKG_BASE_VERSION)-$(PKG_SOURCE_DATE)-$(call version_abbrev,$(PKG_SOURCE_VERSION))
@@ -33,7 +33,7 @@ endef
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
-	xzcat $(DL_DIR)/$(PKG_SOURCE) | $(TAR) -C $(PKG_BUILD_DIR) $(TAR_OPTIONS)
+	tar -xf $(DL_DIR)/$(PKG_SOURCE) -C $(PKG_BUILD_DIR)
 endef
 
 define Build/Configure

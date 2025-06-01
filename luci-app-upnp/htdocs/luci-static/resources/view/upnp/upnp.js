@@ -171,6 +171,9 @@ return view.extend({
 		o.datatype = 'port';
 		o.placeholder = '3478';
 
+		s.taboption('advanced', form.Flag, 'force_forwarding', _('Force forwarding'),
+			_('Force forwarding ports even the network is behind NAT'));
+
 		o = s.taboption('advanced', form.Flag, 'secure_mode', _('Enable secure mode'),
 			_('Allow adding port maps for requesting IP addresses only'));
 		o.default = '1';
@@ -211,9 +214,6 @@ return view.extend({
 
 		o = s.taboption('advanced', form.Value, 'upnp_lease_file', _('Service lease file'));
 		o.placeholder = '/var/run/miniupnpd.leases';
-
-		s.taboption('advanced', form.Flag, 'force_forwarding', _('Force Forwarding'),
-			_('Force forwarding even there is no public IP (please try STUN first)'))
 
 		s = m.section(form.GridSection, 'perm_rule', _('Service Access Control List'),
 			_('ACL specify which client addresses and ports can be mapped, IPv6 always allowed.'));

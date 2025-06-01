@@ -10,13 +10,25 @@ include $(TOPDIR)/rules.mk
 PKG_ARCH_LINKEASE:=$(ARCH)
 
 PKG_NAME:=linkease
-PKG_VERSION:=1.6.9
-PKG_RELEASE:=9
-PKG_SOURCE:=$(PKG_NAME)-binary-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=http://fw0.koolcenter.com/binary/LinkEase/LinuxStorage/
+# use PKG_SOURCE_DATE instead of PKG_VERSION for compitable
+PKG_SOURCE_DATE:=1.7.0
+PKG_RELEASE:=15
+ARCH_HEXCODE:=
+ifeq ($(ARCH),x86_64)
+ARCH_HEXCODE=8664
+else ifeq ($(ARCH),aarch64)
+ARCH_HEXCODE=aa64
+else ifeq ($(ARCH),arm)
+ARCH_HEXCODE=aa32
+else ifeq ($(ARCH),mipsel)
+ARCH_HEXCODE=1b0c
+endif
+PKG_SOURCE_VERSION:=$(ARCH_HEXCODE)
+PKG_SOURCE:=$(PKG_NAME)-binary-$(PKG_SOURCE_DATE).tar.gz
+PKG_SOURCE_URL:=http://dl.istoreos.com/binary/LinkEase/LinuxStorage/
 PKG_HASH:=skip
 
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-binary-$(PKG_VERSION)
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-binary-$(PKG_SOURCE_DATE)
 
 PKG_BUILD_PARALLEL:=1
 PKG_USE_MIPS16:=0

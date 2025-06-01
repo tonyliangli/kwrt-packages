@@ -9,7 +9,7 @@
 
 # QoSmate: Quality of Service for OpenWrt
 
-QoSmate is a Quality of Service (QoS) solution for OpenWrt routers that aims to optimize network performance while allowing for controlled prioritization of specific traffic types. It uses nftables for packet classification and offers both CAKE (Common Applications Kept Enhanced) and HFSC (Hierarchical Fair Service Curve) queueing disciplines for traffic management. It uses tc-ctinfo to restore DSCP marks on ingress.
+QoSmate is a Quality of Service (QoS) tool for OpenWrt routers that aims to optimize network performance while allowing for controlled prioritization of specific traffic types. It uses nftables for packet classification and offers both CAKE (Common Applications Kept Enhanced) and HFSC (Hierarchical Fair Service Curve) queueing disciplines for traffic management. It uses tc-ctinfo to restore DSCP marks on ingress.
 
 The project builds upon the amazing work of [@dlakelan](https://github.com/dlakelan) and his [SimpleHFSCgamerscript](https://github.com/dlakelan/routerperf/blob/master/SimpleHFSCgamerscript.sh), extending its capabilities and adding a user-friendly interface. QoSmate integrates concepts from various QoS systems, including SQM, DSCPCLASSIFY and cake-qos-simple to provide a comprehensive approach to traffic control.
 
@@ -20,8 +20,11 @@ Key aspects of QoSmate include
 - A LuCI-based interface for easy configuration
 - DSCP marking and traffic prioritization options via CLI and UI
 - Automatic package installation and setup
+- Support for custom rules
+- Dynamic and static IP sets
+- Connection statistics
 
-While QoSmate can benefit various types of network traffic, including gaming and other latency-sensitive applications, it is designed to improve overall network performance when configured properly.
+While QoSmate can benefit various types of network traffic, including gaming and other latency-sensitive applications, it is designed to improve overall network performance and should work well out of the box.
 
 ### ⚠️ Important Note:
 
@@ -42,9 +45,10 @@ Before installing QoSmate, ensure that:
 Install the QoSmate backend (which contains a main script/init script/hotplug and a config-file) with the following command:
 
 ```bash
-wget -O /etc/init.d/qosmate https://raw.githubusercontent.com/hudra0/qosmate/main/etc/init.d/qosmate && chmod +x /etc/init.d/qosmate && \
-wget -O /etc/qosmate.sh https://raw.githubusercontent.com/hudra0/qosmate/main/etc/qosmate.sh && chmod +x /etc/qosmate.sh && \
-[ ! -f /etc/config/qosmate ] && wget -O /etc/config/qosmate https://raw.githubusercontent.com/hudra0/qosmate/main/etc/config/qosmate; \
+LATEST_TAG=$(uclient-fetch -O - https://api.github.com/repos/hudra0/qosmate/releases/latest 2>/dev/null | grep -o '"tag_name":"[^"]*' | sed 's/"tag_name":"//') && \
+uclient-fetch -O /etc/init.d/qosmate https://raw.githubusercontent.com/hudra0/qosmate/$LATEST_TAG/etc/init.d/qosmate && chmod +x /etc/init.d/qosmate && \
+uclient-fetch -O /etc/qosmate.sh https://raw.githubusercontent.com/hudra0/qosmate/$LATEST_TAG/etc/qosmate.sh && chmod +x /etc/qosmate.sh && \
+[ ! -f /etc/config/qosmate ] && uclient-fetch -O /etc/config/qosmate https://raw.githubusercontent.com/hudra0/qosmate/$LATEST_TAG/etc/config/qosmate; \
 /etc/init.d/qosmate enable
 ```
 
@@ -53,18 +57,23 @@ wget -O /etc/qosmate.sh https://raw.githubusercontent.com/hudra0/qosmate/main/et
 Install [luci-app-qosmate](https://github.com/hudra0/luci-app-qosmate) with this command:
 
 ```bash
+LATEST_TAG=$(uclient-fetch -O - https://api.github.com/repos/hudra0/luci-app-qosmate/releases/latest 2>/dev/null | grep -o '"tag_name":"[^"]*' | sed 's/"tag_name":"//') && \
 mkdir -p /www/luci-static/resources/view/qosmate /usr/share/luci/menu.d /usr/share/rpcd/acl.d /usr/libexec/rpcd && \
-wget -O /www/luci-static/resources/view/qosmate/settings.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/main/htdocs/luci-static/resources/view/settings.js && \
-wget -O /www/luci-static/resources/view/qosmate/hfsc.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/main/htdocs/luci-static/resources/view/hfsc.js && \
-wget -O /www/luci-static/resources/view/qosmate/cake.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/main/htdocs/luci-static/resources/view/cake.js && \
-wget -O /www/luci-static/resources/view/qosmate/advanced.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/main/htdocs/luci-static/resources/view/advanced.js && \
-wget -O /www/luci-static/resources/view/qosmate/rules.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/main/htdocs/luci-static/resources/view/rules.js && \
-wget -O /www/luci-static/resources/view/qosmate/connections.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/main/htdocs/luci-static/resources/view/connections.js && \
-wget -O /www/luci-static/resources/view/qosmate/custom_rules.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/main/htdocs/luci-static/resources/view/custom_rules.js && \
-wget -O /usr/share/luci/menu.d/luci-app-qosmate.json https://raw.githubusercontent.com/hudra0/luci-app-qosmate/main/root/usr/share/luci/menu.d/luci-app-qosmate.json && \
-wget -O /usr/share/rpcd/acl.d/luci-app-qosmate.json https://raw.githubusercontent.com/hudra0/luci-app-qosmate/main/root/usr/share/rpcd/acl.d/luci-app-qosmate.json && \
-wget -O /usr/libexec/rpcd/luci.qosmate https://raw.githubusercontent.com/hudra0/luci-app-qosmate/main/root/usr/libexec/rpcd/luci.qosmate && \
+uclient-fetch -O /www/luci-static/resources/view/qosmate/settings.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/$LATEST_TAG/htdocs/luci-static/resources/view/settings.js && \
+uclient-fetch -O /www/luci-static/resources/view/qosmate/hfsc.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/$LATEST_TAG/htdocs/luci-static/resources/view/hfsc.js && \
+uclient-fetch -O /www/luci-static/resources/view/qosmate/cake.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/$LATEST_TAG/htdocs/luci-static/resources/view/cake.js && \
+uclient-fetch -O /www/luci-static/resources/view/qosmate/advanced.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/$LATEST_TAG/htdocs/luci-static/resources/view/advanced.js && \
+uclient-fetch -O /www/luci-static/resources/view/qosmate/rules.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/$LATEST_TAG/htdocs/luci-static/resources/view/rules.js && \
+uclient-fetch -O /www/luci-static/resources/view/qosmate/connections.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/$LATEST_TAG/htdocs/luci-static/resources/view/connections.js && \
+uclient-fetch -O /www/luci-static/resources/view/qosmate/custom_rules.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/$LATEST_TAG/htdocs/luci-static/resources/view/custom_rules.js && \
+uclient-fetch -O /www/luci-static/resources/view/qosmate/ipsets.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/$LATEST_TAG/htdocs/luci-static/resources/view/ipsets.js && \
+uclient-fetch -O /www/luci-static/resources/view/qosmate/statistics.js https://raw.githubusercontent.com/hudra0/luci-app-qosmate/$LATEST_TAG/htdocs/luci-static/resources/view/statistics.js && \
+uclient-fetch -O /usr/share/luci/menu.d/luci-app-qosmate.json https://raw.githubusercontent.com/hudra0/luci-app-qosmate/$LATEST_TAG/root/usr/share/luci/menu.d/luci-app-qosmate.json && \
+uclient-fetch -O /usr/share/rpcd/acl.d/luci-app-qosmate.json https://raw.githubusercontent.com/hudra0/luci-app-qosmate/$LATEST_TAG/root/usr/share/rpcd/acl.d/luci-app-qosmate.json && \
+uclient-fetch -O /usr/libexec/rpcd/luci.qosmate https://raw.githubusercontent.com/hudra0/luci-app-qosmate/$LATEST_TAG/root/usr/libexec/rpcd/luci.qosmate && \
+uclient-fetch -O /usr/libexec/rpcd/luci.qosmate_stats https://raw.githubusercontent.com/hudra0/luci-app-qosmate/$LATEST_TAG/root/usr/libexec/rpcd/luci.qosmate_stats && \
 chmod +x /usr/libexec/rpcd/luci.qosmate && \
+chmod +x /usr/libexec/rpcd/luci.qosmate_stats && \
 /etc/init.d/rpcd restart && \
 /etc/init.d/uhttpd restart
 # End of command - Press Enter after pasting
@@ -192,8 +201,8 @@ All cake settings are described in the tc-cake man.
 | **Config option**      | **Description**                                                                                                                                                                                                                                                                  | **Type**                         | **Default**        | 
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ------------------ | 
 | PRESERVE_CONFIG_FILES  | If enabled, configuration files are preserved during system upgrades. Ensures your QoS settings survive firmware updates.                                                                                                                                                        | boolean                          | 1                  | 
-| WASHDSCPUP             | Sets DSCP to CS0 for outgoing packets after classification. This can help in networks where DSCP markings might be altered or cause issues downstream.                                                                                                                           | boolean                          | 1                  | 
-| WASHDSCPDOWN           | Sets DSCP to CS0 for incoming packets before classification. This ensures that any DSCP markings from external sources don't interfere with your internal QoS rules.                                                                                                             | boolean                          | 1                  | 
+| WASHDSCPUP             | Sets DSCP to CS0 for outgoing packets after classification. This can help in networks where DSCP markings might be altered or cause issues downstream. [See detailed explanation](#wash-function-explanation) | boolean                          | 1                  | 
+| WASHDSCPDOWN           | Sets DSCP to CS0 for incoming packets before classification. This ensures that any DSCP markings from external sources don't interfere with your internal QoS rules. [See detailed explanation](#wash-function-explanation) | boolean                          | 1                  | 
 | BWMAXRATIO             | Maximum ratio between download and upload bandwidth. Prevents ACK floods on highly asymmetric connections by limiting download speed relative to upload. For example, a value of 20 means download speed is capped at 20 times the upload speed.                                 | integer                          | 20                 | 
 | ACKRATE                | Sets rate limit for TCP ACKs in packets per second. Helps prevent ACK flooding on asymmetric connections. Set to `0` to disable ACK rate limiting. A typical value is 5% of `UPRATE`.                                                                                            | integer                          | (UPRATE * 5 / 100) | 
 | UDP_RATE_LIMIT_ENABLED | If enabled, downgrades UDP traffic exceeding 450 packets per second to lower priority. This helps prevent high-volume UDP applications from monopolizing bandwidth.                                                                                                              | boolean                          | 1                  | 
@@ -208,6 +217,22 @@ All cake settings are described in the tc-cake man.
 | MSS                    | **TCP Maximum Segment Size** for connections. This setting is only active when the upload or download bandwidth is less than 3000 kbit/s. Adjusting the MSS can help improve performance on low-bandwidth connections. Leave empty to use the default value.                     | integer                          | 536                | 
 | NFT_HOOK               | Specifies the `nftables` hook point for the `dscptag` chain. Options are `forward`, and `postrouting`. The choice of hook point affects when in the packet processing the DSCP markings are applied.                                                                             | enum ( `forward`, `postrouting`) | `forward`          | 
 | NFT_PRIORITY           | Sets the priority for the `nftables` chain. Lower values are processed earlier. Default is `0` - mangle is `-150`.                                                                                                                                                               | integer                          | 0                  | 
+
+### Wash Function Explanation
+
+The `wash` function in `qosmate` is a crucial feature for managing DSCP markings on network packets. It allows you to control how DSCP values are handled on both ingress (incoming) and egress (outgoing) traffic. Below is a detailed explanation of what the wash function does and why it might be necessary:
+
+#### Ingress Washing (WASHDSCPDOWN)
+- **Functionality**: When enabled, ingress washing takes the existing DSCP value of incoming packets (whether from the internet or influenced by conntrack actions for tc) and allows the system to use it for initial classification (e.g., steering packets into matching CAKE priority tins). After this initial handling, `qosmate` re-marks the DSCP field to CS0/DF. (Note: The exact initial handling differs slightly between qdiscs like CAKE and HFSC - **see special Note** below).
+- **Impact**: Inside your LAN, all packets from the internet will be marked as CS0/DF and treated with default forwarding priority. If washing is not enabled, packets retain their original DSCP markings, which could influence, for example, the selection of access classes in WMM (Wi-Fi Multimedia) on Wi-Fi networks, where different access classes have varying stochastic priorities.
+- **Special Note**: In certain configurations, `qosmate` overwrites DSCP values on ingress from the ISP. For instance, if ingress washing is active and HFSC is set as the root qdisc, all packets are initially marked as CS0 when passing through the `dscptag` chain (where marking occurs). Packets matching a `qosmate` rule will be tagged with the appropriate DSCP value. Since the DSCP value is written to conntrack and restored on ingress, all packets end up with either CS0 or the DSCP assigned by a rule, effectively overwriting any DSCP set by the ISP before classification happens.
+
+#### Egress Washing (WASHDSCPUP)
+- **Functionality**: When enabled, egress washing takes the existing DSCP value of outgoing packets (whether from local end hosts or set by firewall/nftables/tc rules) and steers these packets into the matching priority tin of the CAKE qdisc (if using a multi-tin setup). After classification, it re-marks the DSCP field to CS0/DF.
+- **Impact**: This prevents leaking DSCP markings into your ISP's network and the broader internet. Some ISPs treat packets with non-CS0 DSCP markings differently, often not by prioritizing them but by increasing latency, jitter, or even packet loss rates for marked packets.
+
+#### Decision to Use Wash
+Whether to enable washing, and in which direction (ingress, egress, or both), is a decision each network administrator must make based on their specific network needs and policies. Washing can prevent external interference or unintended consequences from DSCP markings/honoring.
 
 ### DSCP Marking Rules
 
@@ -496,6 +521,100 @@ The postrouting priority (10) ensures these rules run after QoSmate's default ru
    ```
 4. Monitor rule effectiveness using the Connections tab
 
+### Example 3: Bandwidth Limiting with Custom Rules
+
+QoSmate allows you to implement targeted bandwidth limiting for specific devices, applications, or ports using custom nftables rules. This functionality is particularly useful for restricting the network usage of certain clients or preventing bandwidth-intensive applications from impacting network performance.
+
+> **Note on Conversion**: Nftables doesn't accept kbit/s as a unit. To convert from kbit/s to kbytes/second, simply divide by 8. Example: 4000 kbit/s equals 500 kbytes/second.
+
+#### Basic Rate Limiting Per Direction
+
+This example shows how to limit bandwidth for a specific device (192.168.1.100) to 4000 kbit/s (= 500 kbytes/s) in both directions:
+
+```
+chain forward {
+    type filter hook forward priority 0; policy accept;
+    
+    # Limit download traffic to 192.168.1.100 to 4000 kbit/s (= 500 kbytes/s)
+    ip daddr 192.168.1.100 limit rate over 500 kbytes/second counter drop
+    
+    # Limit upload traffic from 192.168.1.100 to 4000 kbit/s (= 500 kbytes/s)
+    ip saddr 192.168.1.100 limit rate over 500 kbytes/second counter drop
+}
+```
+
+These rules use the `limit rate over` matcher to drop packets that exceed the specified threshold. The `counter` allows monitoring of dropped packets.
+
+#### Rate Limiting with Burst Allowance
+
+In many cases, it's beneficial to allow short burst data transfers. The `burst` parameter allows a client to temporarily exceed the limit:
+
+```
+chain forward {
+    type filter hook forward priority 0; policy accept;
+    
+    # Limit download with burst allowance
+    ip daddr 192.168.1.100 limit rate over 500 kbytes/second burst 500 kbytes counter drop
+    
+    # Limit upload with burst allowance
+    ip saddr 192.168.1.100 limit rate over 500 kbytes/second burst 500 kbytes counter drop
+}
+```
+
+The `burst` option is particularly useful for applications that transfer data in bursts, as it provides a better user experience while still limiting average bandwidth.
+
+#### Port-Based Rate Limiting
+
+To limit traffic for a specific application port, you can use the conntrack mechanism (`ct`):
+
+```
+chain forward {
+    type filter hook forward priority 0; policy accept;
+    
+    # Limit traffic with destination port 3074 to 1 MB/s (8 Mbit/s)
+    ct original proto-dst 3074 limit rate over 1 mbytes/second counter drop
+}
+```
+
+This rule limits all traffic with destination port 3074 in the original conntrack entry to 1 MB/s (8 Mbit/s). This is useful for limiting specific services like gaming traffic (port 3074 is used by Xbox Live, for example).
+
+#### Combined IP and Port Limiting
+
+For more precise control, you can combine IP addresses and ports:
+
+```
+chain forward {
+    type filter hook forward priority 0; policy accept;
+    
+    # Limit traffic to/from 192.168.1.100 with destination port 3074 to 1 MB/s
+    ip saddr 192.168.1.100 ct original proto-dst 3074 limit rate over 1 mbytes/second counter drop
+    ip daddr 192.168.1.100 ct reply proto-src 3074 limit rate over 1 mbytes/second counter drop
+}
+```
+
+This example shows:
+1. The first rule limits outgoing traffic from 192.168.1.100 to port 3074
+2. The second rule limits incoming traffic to 192.168.1.100 from port 3074 (reply traffic)
+
+Note the use of `ct reply proto-src` to correctly identify return traffic.
+
+#### Protocol-Specific Rate Limiting
+
+To target bandwidth limits specifically to certain protocols (like UDP), you can combine protocol specification with rate limiting:
+
+```
+chain forward {
+    type filter hook forward priority 0; policy accept;
+    
+    # Limit UDP traffic to port 3074 to 1 MB/s (8 Mbit/s)
+    meta l4proto udp ct original proto-dst 3074 limit rate over 1 mbytes/second counter drop
+    
+    # Limit UDP traffic from port 3074 to 1 MB/s (8 Mbit/s)
+    meta l4proto udp ct original proto-src 3074 limit rate over 1 mbytes/second counter drop
+}
+```
+This approach specifically targets UDP traffic to/from port 3074 (commonly used for Xbox gaming), ensuring other protocols remain unaffected.
+
 ## Command Line Interface
 QoSmate can be controlled and configured via the command line. The basic syntax is:
 ```
@@ -521,9 +640,84 @@ Available commands:
         auto_setup_noninteractive   Automatically configure qosmate with no interaction
 ```
 ### Update QoSmate
-```
+QoSmate includes a flexible update system to keep your installation current with the latest features and improvements.
+
+#### Basic Update
+
+To update QoSmate to the latest release version:
+
+```bash
 /etc/init.d/qosmate update
 ```
+
+This command will:
+- Check for updates to both backend and frontend components
+- Download and install the latest release versions if available
+- Restart the service automatically if required
+
+QoSmate will preserve your existing configuration settings during updates.
+
+#### Advanced Update Options
+
+For more control over the update process, QoSmate supports several command-line options:
+
+```bash
+/etc/init.d/qosmate update [options]
+```
+
+| Option | Description | Example |
+| ------ | ----------- | ------- |
+| `-c COMPONENT` | Update only a specific component (BACKEND or FRONTEND) | `-c BACKEND` |
+| `-v VERSION_OR_CHANNEL` | Specify version or channel in various formats: <br>- Version number: `-v 1.2.0` <br>- Channel selection: `-v release`, `-v snapshot` <br>- Branch selection: `-v branch=dev` <br>- Commit hash: `-v commit=a1b2c3d4` | `-v 1.2.0` |
+| `-f` | Force update even if no newer version is available | `-f` |
+| `-i` | Ignore cache results | `-i` |
+| `-U CHANNEL` | Override update channel (takes precedence over -v) | `-U snapshot` |
+
+#### Update Channels
+
+- `release`: Stable versions (recommended for most users)
+- `snapshot`: Latest code from the main branch
+- `branch=NAME`: Code from a specific branch
+- `commit=HASH`: Specific commit version
+
+#### Usage Examples
+
+Check for available updates without installing them:
+```bash
+/etc/init.d/qosmate check_version
+```
+
+Update only the backend component:
+```bash
+/etc/init.d/qosmate update -c BACKEND
+```
+
+Update to a specific version:
+```bash
+/etc/init.d/qosmate update -v 1.2.0
+```
+
+Update to the latest release version:
+```bash
+/etc/init.d/qosmate update -v release
+```
+
+Update to the latest snapshot (development) version:
+```bash
+/etc/init.d/qosmate update -v snapshot
+```
+
+Update to a specific branch:
+```bash
+/etc/init.d/qosmate update -v branch=dev
+```
+
+Update to a specific commit hash:
+```bash
+/etc/init.d/qosmate update -v commit=a1b2c3d4e5f6...
+```
+
+> **Note**: The default update approach (using the release channel) is recommended for most users. Other update channels and options are primarily intended for testing and development purposes.
 
 ## Troubleshooting
 If you encounter issues with the script or want to verify that it's working correctly, follow these steps:
@@ -565,6 +759,7 @@ Please run these commands and provide their complete output:
 ubus call system board
 /etc/init.d/qosmate check_version
 /etc/init.d/qosmate status
+/etc/init.d/qosmate health_check
 cat /etc/config/qosmate
 ifstatus wan | grep -e device
 ```
@@ -662,11 +857,113 @@ git clone https://github.com/hudra0/qosmate.git package/qosmate
 `mkdir -p package/luci-app-qosmate
 git clone https://github.com/hudra0/luci-app-qosmate.git package/luci-app-qosmate`
 
+## QoSmate Traffic Shaping: HFSC and CAKE
+
+QoSmate supports two traffic shaping systems: HFSC and CAKE. Each combines queueing disciplines (qdiscs) with bandwidth control mechanisms to provide different approaches to traffic management and prioritization.
+
+### HFSC (Hierarchical Fair Service Curve)
+
+HFSC in QoSmate creates a hierarchical queueing structure with integrated traffic shaping that divides traffic into distinct classes with different service guarantees. The system offers control over both bandwidth and latency for different traffic types.
+
+#### HFSC Queue Structure
+![image](https://github.com/user-attachments/assets/8e2948e9-6ffa-46ff-b9e2-43e0f370bc82)
+
+QoSmate's HFSC implementation organizes traffic into 5 main classes:
+
+1. **Realtime Class (1:11)** - Highest priority class for gaming and latency-sensitive applications
+   - Handles packets marked with DSCP values CS5, CS6, CS7, and EF
+   - Limited to GAMEUP/GAMEDOWN bandwidth (configurable, defaults to 15% of total bandwidth + 400kbps)
+   - Uses configurable qdisc (pfifo, bfifo, red, fq_codel, or netem)
+
+2. **Fast Interactive Class (1:12)** - For interactive, non-gaming applications
+   - Handles packets marked with DSCP values CS4, AF41, and AF42
+   - Gets 30% of bandwidth under congestion
+
+3. **Normal Class (1:13)** - Default class for general browsing and unmarked traffic
+   - Handles packets with default (CS0) DSCP marking
+   - Gets 45% of bandwidth under congestion
+
+4. **Low Priority Class (1:14)** - For background transfers
+   - Handles packets marked with DSCP value CS2
+   - Gets 15% of bandwidth under congestion
+
+5. **Bulk Class (1:15)** - Lowest priority class for long-running transfers
+   - Handles packets marked with DSCP value CS1
+   - Gets 10% of bandwidth under congestion
+   - Perfect for torrents, large backups, and other bandwidth-intensive but delay-tolerant traffic
+
+#### How HFSC Prioritization Works
+
+HFSC uses service curves to control bandwidth allocation and latency:
+
+1. **Realtime Traffic (Gaming)**
+   - Gets guaranteed minimum bandwidth regardless of other traffic
+   - Uses qdisc configurable via `gameqdisc` option
+   - Can use RED, FQ_CODEL, PFIFO, BFIFO or NETEM qdisc for fine-tuned control
+
+2. **Non-Realtime Traffic**
+   - Uses either FQ_CODEL or CAKE qdisc (configurable)
+   - Fair allocation within each class
+   - Classes only compete when link is saturated
+
+3. **Bandwidth Utilization**
+   - When bandwidth is available, any class can use more than its allocation
+   - When congestion occurs, each class is limited to its fair share according to class priority
+
+#### HFSC Configuration Example
+
+Here's a basic example of how QoSmate configures HFSC queues:
+
+```
+# Create root qdisc with proper overhead
+tc qdisc replace dev $WAN stab overhead 40 linklayer ethernet handle 1: root hfsc default 13
+
+# Define overall bandwidth limit
+tc class add dev $WAN parent 1: classid 1:1 hfsc ls m2 "${RATE}kbit" ul m2 "${RATE}kbit"
+
+# Create realtime class with guaranteed bandwidth
+tc class add dev $WAN parent 1:1 classid 1:11 hfsc rt m1 "${gameburst}kbit" d "${DUR}ms" m2 "${gamerate}kbit"
+
+# Create non-realtime classes with different priorities
+tc class add dev $WAN parent 1:1 classid 1:12 hfsc ls m1 "$((RATE*70/100))kbit" d "${DUR}ms" m2 "$((RATE*30/100))kbit"
+tc class add dev $WAN parent 1:1 classid 1:13 hfsc ls m1 "$((RATE*20/100))kbit" d "${DUR}ms" m2 "$((RATE*45/100))kbit"
+tc class add dev $WAN parent 1:1 classid 1:14 hfsc ls m1 "$((RATE*7/100))kbit" d "${DUR}ms" m2 "$((RATE*15/100))kbit"
+tc class add dev $WAN parent 1:1 classid 1:15 hfsc ls m1 "$((RATE*3/100))kbit" d "${DUR}ms" m2 "$((RATE*10/100))kbit"
+```
+
+### CAKE (Common Applications Kept Enhanced)
+
+CAKE is a comprehensive traffic control system that combines queue management with traffic shaping. More information can be found [here](https://www.bufferbloat.net/projects/codel/wiki/CakeTechnical/) and [here](https://man7.org/linux/man-pages/man8/tc-cake.8.html).
+#### CAKE Features in QoSmate
+
+1. **Diffserv Traffic Prioritization** (Diffserv3, Diffserv4 and Diffserv8)
+   - QoSmate uses diffserv4 by default, creating 4 tiers of service:
+     - Highest: Voice (CS7, CS6, EF)
+     - High: Video (CS5, CS4, AF4x)
+     - Medium: Best Effort (CS0, AF1x, AF2x, AF3x)
+     - Low: Background (CS1, CS2, CS3)
+   - Each tier gets progressively less bandwidth and priority
+
+2. **Host Isolation**
+   - Ensures fair bandwidth allocation between different devices on your network
+   - Prevents a single device from monopolizing bandwidth
+   - Implemented as dual-srchost (for upload) and dual-dsthost (for download)
+
+3. **Advanced Queue Management**
+   - Automatically manages buffers to prevent bufferbloat
+   - Built-in ACK filtering for asymmetric connections
+   - Wash option to control DSCP marking behavior
+
+
+### DSCP Marking
+
+QoSmate uses DSCP (Differentiated Services Code Point) marking to classify and prioritize traffic. The dscptag system classifies traffic based on protocols, ports, and IP addresses, stores values in connection tracking for consistent bidirectional handling, and directs packets to the appropriate queues.
+
 ## Technical Implementation
 
 ### Traffic Shaping Implementation
 
-QoSmate uses a sophisticated approach to handle Quality of Service in both upload and download directions. The implementation leverages Connection Tracking Information (CTInfo) for efficient traffic management.
+QoSmate handles Quality of Service in both upload and download directions. The implementation leverages Connection Tracking Information (CTInfo) for efficient traffic management.
 
 #### How CTInfo Works
 

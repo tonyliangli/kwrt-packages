@@ -16,7 +16,6 @@
 /luci-app-webdavf
 /luci-app-baidupcs-web
 /luci-app-softether
-/mentohust
 /subweb
 /wget
 /mt
@@ -53,3 +52,9 @@
 /vsftpd-alt
 /luci-app-nginx-pingos
 /configs
+/aic8800
+/assets
+/v2ray-core
+/v2ray-geodata
+/k3screenctrl
+

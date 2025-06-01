@@ -6,7 +6,6 @@
     "init": "add"
 }
 EEOF
-/etc/init.d/ucitrack reload
 }
 # Copyright (c) 2019-2024 vernesong
 
@@ -657,12 +656,13 @@ start_run_core()
    chown root:root /etc/openclash/core/* 2>/dev/null
    kill_clash
    procd_open_instance "openclash"
+   procd_set_param env SKIP_SAFE_PATH_CHECK="$skip_safe_path_check"
+   procd_append_param env SAFE_PATHS=/usr/share/openclash:/etc/ssl
    procd_set_param command /bin/sh -c "$CLASH -d $CLASH_CONFIG -f \"$CONFIG_FILE\" >> $LOG_FILE 2>&1"
    procd_set_param user "root"
    procd_set_param group "nogroup"
    procd_set_param limits nproc="unlimited" as="unlimited" memlock="unlimited" nofile="1000000 1000000"
-   procd_set_param respawn 3600 3 10
-   procd_set_param capabilities "/etc/capabilities/openclash.json"
+   procd_set_param respawn 300 5 3
    procd_set_param stderr 1
    procd_set_param no_new_privs 1
    procd_close_instance
@@ -794,16 +794,15 @@ check_core_status()
          ip rule add fwmark "$PROXY_FWMARK" table "$PROXY_ROUTE_TABLE" pref 1889
       fi
    else
-      reg4='^((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])$'
-      while ( [ -n "$(pidof clash)" ] && [ "$CORE_HTTP_CODE" != "200" ] && [ "$TUN_WAIT" -le 120 ] && [[ "$lan_ip" =~ $reg4 ]] )
+      reg4='^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$'
+      while ( [ -n "$(pidof clash)" ] && [ "$CORE_HTTP_CODE" != "200" ] && [ "$TUN_WAIT" -le 120 ] && [ -n "$(echo ${lan_ip} | grep -Eo ${reg4})" ] )
       do
          CORE_HTTP_CODE=$(curl -m 5 -o /dev/null -s -w '%{http_code}' -H 'Content-Type: application/json' -H "Authorization: Bearer ${da_password}" -XGET http://${lan_ip}:${cn_port}/group)
          let TUN_WAIT++
          sleep 1
       done >/dev/null 2>&1
-      if ! [[ "$lan_ip" =~ $reg4 ]]; then
+      if [ -z "$(echo ${lan_ip} | grep -Eo ${reg4})" ]; then
          LOG_OUT "Error: LAN IP Address Get Error, Please Check The LAN Interface Setting or Choose the Correct Interface in the Setting!"
-         sleep 10
       fi
       if [ "$CORE_HTTP_CODE" != "200" ]; then
          LOG_OUT "Error: Core Status Abnormal, Please Check The Log Infos!"
@@ -967,7 +966,7 @@ firewall_rule_exclude()
 
    ipv6_suffix_to_nft_format() {
        local ipv6_with_prefix="$1"
-          if [[ "$ipv6_with_prefix" =~ / ]]; then
+          if [[ "$ipv6_with_prefix" =~ / ]] || [ -n "$(echo ${ipv6_with_prefix} | grep '/')" ]; then
              local suffix="${ipv6_with_prefix%%/*}"
              local prefix="${ipv6_with_prefix##*/}"
              echo "& $prefix == $suffix"
@@ -995,7 +994,7 @@ firewall_rule_exclude()
        return
    fi
 
-   if [ -n "$(echo $dest_port |grep -E '\-|\:'  2>/dev/null)" ]; then
+   if [ -n "$(echo $dest_port |grep -E '\-|\:' 2>/dev/null)" ]; then
       LOG_OUT "Warning: Because there is a port range【$dest_port】in the firewall rule settings【$name】auto bypassing may cause the normal connection of the client not to reach the core, if necessary, please add your own in the access control!"
       return
    fi
@@ -1053,7 +1052,7 @@ firewall_rule_exclude()
                      nft insert rule inet fw4 openclash_mangle_v6 position 0 meta nfproto {ipv6} tcp sport "$i" counter return >/dev/null 2>&1
                      nft insert rule inet fw4 openclash_v6 position 0 meta nfproto {ipv6} tcp sport "$i" counter return >/dev/null 2>&1
                   else
-                     if [[ "$dest_ip" =~ , ]]; then
+                     if [[ "$dest_ip" =~ , ]] || [ -n "$(echo ${dest_ip} | grep ',')" ]; then
                         nft insert rule inet fw4 openclash_mangle_v6 position 0 ip6 saddr { "$dest_ip" } tcp sport "$i" counter return >/dev/null 2>&1
                         nft insert rule inet fw4 openclash_v6 position 0 ip6 saddr { "$dest_ip" } tcp sport "$i" counter return >/dev/null 2>&1
                      else
@@ -1068,7 +1067,7 @@ firewall_rule_exclude()
                   if [ -z "$dest_ip" ]; then
                      nft insert rule inet fw4 openclash_mangle_v6 position 0 meta nfproto {ipv6} udp sport "$i" counter return >/dev/null 2>&1
                   else
-                     if [[ "$dest_ip" =~ , ]]; then
+                     if [[ "$dest_ip" =~ , ]] || [ -n "$(echo ${dest_ip} | grep ',')" ]; then
                         nft insert rule inet fw4 openclash_mangle_v6 position 0 ip6 saddr { "$dest_ip" } udp sport "$i" counter return >/dev/null 2>&1
                      else
                         nft insert rule inet fw4 openclash_mangle_v6 position 0 ip6 saddr "$nft_ipv6" udp sport "$i" counter return >/dev/null 2>&1
@@ -1169,7 +1168,7 @@ firewall_redirect_exclude()
       return
    fi
 
-   if [ -n "$(echo $dest_port |grep -E '\-|\:'  2>/dev/null)" ]; then
+   if [ -n "$(echo $dest_port |grep -E '\-|\:' 2>/dev/null)" ]; then
       LOG_OUT "Warning: Because there is a port range【$dest_port】in the firewall rule settings【$name】auto bypassing may cause the normal connection of the client not to reach the core, if necessary, please add your own in the access control!"
       return
    fi
@@ -1988,7 +1987,7 @@ if [ -n "$FW4" ]; then
                rule="ip6 daddr != @china_ip6_route"
             fi
             [ "$enable_redirect_dns" != "2" ] && rule="$rule ip6 daddr != @china_ip6_route_pass"
-            nft 'add rule inet fw4 openclash_mangle_output_v6 $rule counter return'
+            nft "add rule inet fw4 openclash_mangle_output_v6 $rule counter return"
          fi
 
          if ([ "$ipv6_mode" -eq 1 ] && [ "$enable_v6_udp_proxy" -eq 1 ]) || [ "$ipv6_mode" -eq 3 ]; then
@@ -2930,9 +2929,9 @@ get_config()
 
    lan_interface_name=$(uci -q get openclash.config.lan_interface_name || echo 0)
    if [ "$lan_interface_name" = "0" ]; then
-      lan_ip=$(uci -q get network.lan.ipaddr |awk -F '/' '{print $1}' 2>/dev/null || ip address show $(uci -q -p /tmp/state get network.lan.device || uci -q -p /tmp/state get network.lan.device) | grep -w "inet"  2>/dev/null |grep -Eo 'inet [0-9\.]+' | awk '{print $2}' |head -1 || ip addr show 2>/dev/null | grep -w 'inet' | grep 'global' | grep 'brd' | grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | head -n 1)
+      lan_ip=$(uci -q get network.lan.ipaddr 2>/dev/null | awk -F '/' '{print $1}' 2>/dev/null | tr -d '\n' || ip address show $(uci -q -p /tmp/state get network.lan.device || uci -q -p /tmp/state get network.lan.device) | grep -w "inet" 2>/dev/null |grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | head -1 | tr -d '\n' || ip addr show 2>/dev/null | grep -w 'inet' | grep 'global' | grep 'brd' | grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | head -n 1 | tr -d '\n')
    else
-      lan_ip=$(ip address show $lan_interface_name | grep -w "inet"  2>/dev/null |grep -Eo 'inet [0-9\.]+' | awk '{print $2}' |head -1)
+      lan_ip=$(ip address show $lan_interface_name 2>/dev/null | grep -w "inet" 2>/dev/null | grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | head -1 | tr -d '\n')
    fi
 
    wan_ip4s=$(/usr/share/openclash/openclash_get_network.lua "wanip" 2>/dev/null)
@@ -2973,6 +2972,7 @@ get_config()
    custom_fakeip_filter_mode=$(uci -q get openclash.config.custom_fakeip_filter_mode || echo "blacklist")
    iptables_compat=$(iptables -m owner -h 2>/dev/null | grep "owner match options" || command -v fw4 || echo 0)
    disable_quic_go_gso=$(uci -q get openclash.config.disable_quic_go_gso || echo 0)
+   skip_safe_path_check=$(uci -q get openclash.config.skip_safe_path_check || echo 0)
    [ -z "$dns_port" ] && dns_port=7874 && uci -q set openclash.config.dns_port=7874
    uci -q commit openclash
 }
@@ -3067,7 +3067,6 @@ stop_service()
 
    LOG_OUT "Step 6: Delete OpenClash Residue File..."
    if [ "$enable" != "1" ]; then
-      
       rm -rf /tmp/clash_last_version >/dev/null 2>&1
       rm -rf /tmp/Proxy_Group >/dev/null 2>&1
       rm -rf /tmp/rules_name >/dev/null 2>&1
@@ -3077,6 +3076,7 @@ stop_service()
       rm -rf /tmp/openclash.change >/dev/null 2>&1
       rm -rf /tmp/openclash_debug.log >/dev/null 2>&1
       rm -rf /tmp/openclash_edit_file_name >/dev/null 2>&1
+      rm -rf /tmp/openclash_announcement >/dev/null 2>&1
       rm -rf ${DNSMASQ_CONF_DIR}/dnsmasq_openclash_chnroute_pass.conf >/dev/null 2>&1
       rm -rf ${DNSMASQ_CONF_DIR}/dnsmasq_openclash_chnroute6_pass.conf >/dev/null 2>&1
       rm -rf ${DNSMASQ_CONF_DIR}/dnsmasq_openclash_custom_domain.conf >/dev/null 2>&1

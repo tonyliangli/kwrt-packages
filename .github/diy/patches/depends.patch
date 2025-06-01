@@ -1,14 +1,14 @@
---- a/luci-app-aria2/Makefile
-+++ b/luci-app-aria2/Makefile
-@@ -7,7 +7,7 @@
- include $(TOPDIR)/rules.mk
+--- a/luci-app-easytier/Makefile
++++ b/luci-app-easytier/Makefile
+@@ -10,7 +10,7 @@ PKG_VERSION:=2.3.0
+ PKG_RELEASE:=1
  
- LUCI_TITLE:=LuCI Support for Aria2
--LUCI_DEPENDS:=+luci-base +aria2
-+LUCI_DEPENDS:=+luci-base +aria2 +ariang
+ LUCI_TITLE:=LuCI support for EasyTier
+-LUCI_DEPENDS:=+kmod-tun +luci-compat
++LUCI_DEPENDS:=+kmod-tun +easytier +luci-compat
+ LUCI_PKGARCH:=all
  
- PKG_MAINTAINER:=Xingwang Liao <kuoruan@gmail.com>
- PKG_LICENSE:=MIT
+ PKG_NAME:=luci-app-easytier
 
 --- a/luci-app-samba4/Makefile
 +++ b//luci-app-samba4/Makefile
@@ -116,30 +116,6 @@
                +PACKAGE_$(PKG_NAME)_INCLUDE_rclone-webui:rclone-webui-react \
                +PACKAGE_$(PKG_NAME)_INCLUDE_rclone-ng:rclone-ng
  LUCI_PKGARCH:=all
-
---- a/luci-app-advancedplus/Makefile
-+++ b/luci-app-advancedplus/Makefile
-@@ -7,7 +7,7 @@ include $(TOPDIR)/rules.mk
- NAME:=advancedplus
- PKG_NAME:=luci-app-$(NAME)
- LUCI_TITLE:=LuCI support for Kucat theme setting by sirpdboy
--LUCI_DEPENDS:=+luci-compat +curl +wget
-+LUCI_DEPENDS:=+luci-compat +curl
- LUCI_PKGARCH:=all
- 
- PKG_VERSION:=1.8.0
-
---- a/luci-app-einat/Makefile
-+++ b/luci-app-einat/Makefile
-@@ -9,7 +9,7 @@ LUCI_NAME:=luci-app-einat
- 
- LUCI_TITLE:=LuCI Support for einat
- LUCI_PKGARCH:=all
--LUCI_DEPENDS:=
-+LUCI_DEPENDS:=+einat-ebpf
- 
- LUCI_DESCRIPTION:=eBPF-based Endpoint-Independent NAT
-
 
 --- a/tailscale/Makefile
 +++ b/tailscale/Makefile

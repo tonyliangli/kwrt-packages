@@ -6,28 +6,28 @@ include $(TOPDIR)/rules.mk
 
 PKG_UPSTREAM_NAME:=natmap
 PKG_NAME:=natmapt
-PKG_UPSTREAM_VERSION:=20250101
+PKG_UPSTREAM_VERSION:=20250512
 PKG_UPSTREAM_GITHASH:=
 PKG_VERSION:=$(PKG_UPSTREAM_VERSION)$(if $(PKG_UPSTREAM_GITHASH),~$(call version_abbrev,$(PKG_UPSTREAM_GITHASH)))
-PKG_RELEASE:=34
+PKG_RELEASE:=47
 SCRIPTS_VERSION:=0.2025.2.19
+
+PKG_SOURCE_SUBDIR:=$(PKG_UPSTREAM_NAME)-$(PKG_UPSTREAM_VERSION)
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_SOURCE_SUBDIR)
 
 ifeq ($(PKG_UPSTREAM_GITHASH),)
 PKG_SOURCE_URL:=https://github.com/heiher/natmap/releases/download/$(PKG_UPSTREAM_VERSION)
 PKG_HASH:=skip
 
-PKG_SOURCE:=$(PKG_UPSTREAM_NAME)-$(PKG_UPSTREAM_VERSION).tar.xz
+PKG_SOURCE:=$(PKG_SOURCE_SUBDIR).tar.xz
 else
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/heiher/natmap.git
-PKG_SOURCE_VERSION:=971178c6c2967b94c9fc47862872369074ae610f
+PKG_SOURCE_VERSION:=e4196b215077e72ac12e980f6878e0179a6a2a73
 PKG_MIRROR_HASH:=skip
 
-PKG_SOURCE:=$(PKG_UPSTREAM_NAME)-$(PKG_UPSTREAM_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
+PKG_SOURCE:=$(PKG_SOURCE_SUBDIR)-$(PKG_SOURCE_VERSION).tar.gz
 endif
-
-PKG_SOURCE_SUBDIR:=$(PKG_UPSTREAM_NAME)-$(PKG_UPSTREAM_VERSION)
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_SOURCE_SUBDIR)
 
 PKG_MAINTAINER:=Anya Lin <hukk1996@gmail.com>, Richard Yu <yurichard3839@gmail.com>, Ray Wang <r@hev.cc>
 PKG_LICENSE:=MIT
@@ -74,6 +74,7 @@ define Package/natmapt/install
 	$(INSTALL_BIN) ./files/natmap.defaults $(1)/etc/uci-defaults/97_natmap
 	$(INSTALL_DIR) $(1)/etc/natmap/client
 	$(INSTALL_BIN) ./files/client/qBittorrent $(1)/etc/natmap/client/
+	$(LN)          qBittorrent                $(1)/etc/natmap/client/qBittorrent-announce_port
 	$(INSTALL_DIR) $(1)/etc/natmap/notify
 	$(INSTALL_BIN) ./files/notify/ntfy $(1)/etc/natmap/notify/
 	$(INSTALL_DIR) $(1)/etc/natmap/ddns

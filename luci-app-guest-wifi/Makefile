@@ -1,16 +1,12 @@
-#
-# Copyright (C) 2018 By-Ameng Openwrt.org
-#
-# This is free software, licensed under the Apache License, Version 2.0 .
-#
-
 include $(TOPDIR)/rules.mk
 
-LUCI_TITLE:=LuCI support for guest-wifi
-LUCI_DEPENDS:=
-LUCI_PKGARCH:=all
-
 PKG_NAME:=luci-app-guest-wifi
+PKG_VERSION:=2.0.1
+PKG_RELEASE:=10
+
+LUCI_TITLE:=LuCI support for guest-wifi
+LUCI_DEPENDS:=+luci-base +luci-compat
+LUCI_PKGARCH:=all
 
 include $(TOPDIR)/feeds/luci/luci.mk
 

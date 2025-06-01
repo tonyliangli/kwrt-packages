@@ -64,6 +64,7 @@ function index()
 	entry({"admin", "services", appname, "link_add_node"}, call("link_add_node")).leaf = true
 	entry({"admin", "services", appname, "socks_autoswitch_add_node"}, call("socks_autoswitch_add_node")).leaf = true
 	entry({"admin", "services", appname, "socks_autoswitch_remove_node"}, call("socks_autoswitch_remove_node")).leaf = true
+	entry({"admin", "services", appname, "gen_client_config"}, call("gen_client_config")).leaf = true
 	entry({"admin", "services", appname, "get_now_use_node"}, call("get_now_use_node")).leaf = true
 	entry({"admin", "services", appname, "get_redir_log"}, call("get_redir_log")).leaf = true
 	entry({"admin", "services", appname, "get_socks_log"}, call("get_socks_log")).leaf = true
@@ -89,13 +90,16 @@ function index()
 	entry({"admin", "services", appname, "check_passwall"}, call("app_check")).leaf = true
 	local coms = require "luci.passwall.com"
 	local com
-	for com, _ in pairs(coms) do
+	for _, com in ipairs(coms.order) do
 		entry({"admin", "services", appname, "check_" .. com}, call("com_check", com)).leaf = true
 		entry({"admin", "services", appname, "update_" .. com}, call("com_update", com)).leaf = true
 	end
 
 	--[[Backup]]
 	entry({"admin", "services", appname, "backup"}, call("create_backup")).leaf = true
+
+	--[[geoview]]
+	entry({"admin", "services", appname, "geo_view"}, call("geo_view")).leaf = true
 end
 
 local function http_write_json(content)
@@ -124,10 +128,28 @@ function hide_menu()
 end
 
 function link_add_node()
-	local lfile = "/tmp/links.conf"
-	local link = luci.http.formvalue("link")
-	luci.sys.call('echo \'' .. link .. '\' > ' .. lfile)
-	luci.sys.call("lua /usr/share/passwall/subscribe.lua add log")
+	-- 分片接收以突破uhttpd的限制
+	local tmp_file = "/tmp/links.conf"
+	local chunk = luci.http.formvalue("chunk")
+	local chunk_index = tonumber(luci.http.formvalue("chunk_index"))
+	local total_chunks = tonumber(luci.http.formvalue("total_chunks"))
+
+	if chunk and chunk_index ~= nil and total_chunks ~= nil then
+		-- 按顺序拼接到文件
+		local mode = "a"
+		if chunk_index == 0 then
+			mode = "w"
+		end
+		local f = io.open(tmp_file, mode)
+		if f then
+			f:write(chunk)
+			f:close()
+		end
+		-- 如果是最后一片，才执行
+		if chunk_index + 1 == total_chunks then
+			luci.sys.call("lua /usr/share/passwall/subscribe.lua add log")
+		end
+	end
 end
 
 function socks_autoswitch_add_node()
@@ -169,6 +191,20 @@ function socks_autoswitch_remove_node()
 	luci.http.redirect(api.url("socks_config", id))
 end
 
+
+function gen_client_config()
+	local id = luci.http.formvalue("id")
+	local config_file = api.TMP_PATH .. "/config_" .. id
+	luci.sys.call(string.format("/usr/share/passwall/app.sh run_socks flag=config_%s node=%s bind=127.0.0.1 socks_port=1080 config_file=%s no_run=1", id, id, config_file))
+	if nixio.fs.access(config_file) then
+		luci.http.prepare_content("application/json")
+		luci.http.write(luci.sys.exec("cat " .. config_file))
+		luci.sys.call("rm -f " .. config_file)
+	else
+		luci.http.redirect(api.url("node_list"))
+	end
+end
+
 function get_now_use_node()
 	local path = "/tmp/etc/passwall/acl/default"
 	local e = {}
@@ -193,7 +229,7 @@ function get_redir_log()
 		proto = "TCP"
 	end
 	if fs.access(path .. "/" .. proto .. ".log") then
-		local content = luci.sys.exec("cat ".. path .. "/" .. proto .. ".log")
+		local content = luci.sys.exec("tail -n 19999 ".. path .. "/" .. proto .. ".log")
 		content = content:gsub("\n", "<br />")
 		luci.http.write(content)
 	else
@@ -217,7 +253,7 @@ function get_chinadns_log()
 	local flag = luci.http.formvalue("flag")
 	local path = "/tmp/etc/passwall/acl/" .. flag .. "/chinadns_ng.log"
 	if fs.access(path) then
-		local content = luci.sys.exec("cat ".. path)
+		local content = luci.sys.exec("tail -n 5000 ".. path)
 		content = content:gsub("\n", "<br />")
 		luci.http.write(content)
 	else
@@ -616,4 +652,54 @@ function create_backup()
 	http.prepare_content("application/octet-stream")
 	http.write(fs.readfile(tar_file))
 	fs.remove(tar_file)
+end
+
+function geo_view()
+	local action = luci.http.formvalue("action")
+	local value = luci.http.formvalue("value")
+	if not value or value == "" then
+		http.prepare_content("text/plain")
+		http.write(i18n.translate("Please enter query content!"))
+		return
+	end
+	local geo_dir = (uci:get(appname, "@global_rules[0]", "v2ray_location_asset") or "/usr/share/v2ray/"):match("^(.*)/")
+	local geosite_path = geo_dir .. "/geosite.dat"
+	local geoip_path = geo_dir .. "/geoip.dat"
+	local geo_type, file_path, cmd
+	local geo_string = ""
+	if action == "lookup" then
+		if api.datatypes.ipaddr(value) or api.datatypes.ip6addr(value) then
+			geo_type, file_path = "geoip", geoip_path
+		else
+			geo_type, file_path = "geosite", geosite_path
+		end
+		cmd = string.format("geoview -type %s -action lookup -input '%s' -value '%s' -lowmem=true", geo_type, file_path, value)
+		geo_string = luci.sys.exec(cmd):lower()
+		if geo_string ~= "" then
+			local lines = {}
+			for line in geo_string:gmatch("([^\n]*)\n?") do
+				if line ~= "" then
+					table.insert(lines, geo_type .. ":" .. line)
+				end
+			end
+			geo_string = table.concat(lines, "\n")
+		end
+	elseif action == "extract" then
+		local prefix, list = value:match("^(geoip:)(.*)$")
+		if not prefix then
+			prefix, list = value:match("^(geosite:)(.*)$")
+		end
+		if prefix and list and list ~= "" then
+			geo_type = prefix:sub(1, -2)
+			file_path = (geo_type == "geoip") and geoip_path or geosite_path
+			cmd = string.format("geoview -type %s -action extract -input '%s' -list '%s' -lowmem=true", geo_type, file_path, list)
+			geo_string = luci.sys.exec(cmd)
+		end
+	end
+	http.prepare_content("text/plain")
+	if geo_string and geo_string ~="" then
+		http.write(geo_string)
+	else
+		http.write(i18n.translate("No results were found!"))
+	end
 end

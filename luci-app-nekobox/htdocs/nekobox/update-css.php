@@ -5,9 +5,10 @@ $width = isset($data['width']) ? $data['width'] : null;
 $modalWidth = isset($data['modalWidth']) ? $data['modalWidth'] : null;
 $applyGroup1 = isset($data['group1']) && $data['group1'] == 1;
 $applyBodyBackground = isset($data['bodyBackground']) && $data['bodyBackground'] == 1;
+$applyOpenWrtTheme = isset($data['openwrtTheme']) && $data['openwrtTheme'] == 1;
 
 if ($width !== null && $modalWidth !== null) {
-    $cssFilePath = 'assets/theme/transparent.css';
+    $cssFilePath = 'ping.php';
 
     if (file_exists($cssFilePath)) {
         $cssContent = file_get_contents($cssFilePath);
@@ -42,12 +43,12 @@ if ($width !== null && $modalWidth !== null) {
             $scrollableCssEnd = strpos($cssContent, '}', $position);
             $newCssContent = substr($cssContent, 0, $scrollableCssEnd + 1) . "\n" . $containerCss . substr($cssContent, $scrollableCssEnd + 1);
             file_put_contents($cssFilePath, $newCssContent);
-            echo json_encode(['status' => 'success', 'message' => 'CSS 更新成功']);
+            echo json_encode(['status' => 'success', 'message' => 'CSS updated successfully']);
         } else {
-            echo json_encode(['status' => 'error', 'message' => '未找到 .scrollable-container:hover 样式']);
+            echo json_encode(['status' => 'error', 'message' => 'Could not find .scrollable-container:hover style']);
         }
     } else {
-        echo json_encode(['status' => 'error', 'message' => 'CSS 文件未找到']);
+        echo json_encode(['status' => 'error', 'message' => 'CSS file not found']);
     }
 } 
 
@@ -69,11 +70,39 @@ if ($applyGroup1 || $applyBodyBackground) {
 
         file_put_contents($cssFilePath, $cssContent);
 
-        echo json_encode(['status' => 'success', 'message' => '透明背景已应用']);
+        echo json_encode(['status' => 'success', 'message' => 'Transparent background applied']);
     } else {
-        echo json_encode(['status' => 'error', 'message' => 'CSS 文件未找到']);
+        echo json_encode(['status' => 'error', 'message' => 'CSS file not found']);
     }
 } else {
-    echo json_encode(['status' => 'error', 'message' => '未启用透明背景']);
+    echo json_encode(['status' => 'error', 'message' => 'Transparent background not enabled']);
+}
+
+$pingFilePath = 'ping.php';
+if (file_exists($pingFilePath)) {
+    $pingContent = file_get_contents($pingFilePath);
+
+    if ($applyOpenWrtTheme) {
+        $additionalContent = '
+            <!-- START OpenWRT Theme -->
+            <link rel="stylesheet" href="/luci-static/spectra/css/dark.css">
+            <script src="/luci-static/spectra/js/custom.js"></script>
+            <!-- END OpenWRT Theme -->
+        ';
+        
+        if (strpos($pingContent, '<!-- START OpenWRT Theme -->') === false) {
+            $pingContent .= $additionalContent; 
+            file_put_contents($pingFilePath, $pingContent);
+            echo json_encode(['status' => 'success', 'message' => 'OpenWRT theme enabled']);
+        } else {
+            echo json_encode(['status' => 'info', 'message' => 'OpenWRT theme already enabled']);
+        }
+    } else {
+        $pingContent = preg_replace('/<!-- START OpenWRT Theme -->.*?<!-- END OpenWRT Theme -->/s', '', $pingContent);
+        file_put_contents($pingFilePath, $pingContent);
+        echo json_encode(['status' => 'success', 'message' => 'OpenWRT theme disabled']);
+    }
+} else {
+    echo json_encode(['status' => 'error', 'message' => 'ping.php not found']);
 }
 ?>

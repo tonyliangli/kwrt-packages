@@ -28,7 +28,6 @@ start_service() {
       local root=$(uci_get_by_type server root /)
       local tls_cert=$(uci_get_by_type server tls_cert)
       local tls_key=$(uci_get_by_type server tls_key)
-      local drive_type=$(uci_get_by_type server drive_type)
 
       local extra_options="--auto-index"
 
@@ -71,10 +70,6 @@ start_service() {
         extra_options="$extra_options --tls-cert $tls_cert --tls-key $tls_key"
       fi
 
-      if [[ ! -z "$drive_type" ]]; then
-        extra_options="$extra_options --drive-type $drive_type"
-      fi
-
       procd_open_instance
       procd_set_param command /bin/sh -c "/usr/bin/$NAME $extra_options --host $host --port $port --root $root --read-buffer-size $read_buf_size --upload-buffer-size $upload_buf_size --cache-size $cache_size --cache-ttl $cache_ttl --workdir /var/run/$NAME >>/var/log/$NAME.log 2>&1"
       procd_set_param pidfile /var/run/$NAME.pid
@@ -94,4 +89,8 @@ start_service() {
 
 service_triggers() {
 	procd_add_reload_trigger "aliyundrive-webdav"
+}
+
+reload_service() {
+	restart
 }

@@ -168,9 +168,9 @@ return view.extend({
 			return E('strong', [features.core_version || _('Unknown')]);
 		}
 
-		so = ss.option(form.DummyValue, '_luciapp_version', _('Application version'));
+		so = ss.option(form.DummyValue, '_app_version', _('Application version'));
 		so.cfgvalue = function() {
-			return E('strong', [features.luciapp_version || _('Unknown')]);
+			return E('strong', [features.app_version || _('Unknown')]);
 		}
 
 		so = ss.option(form.DummyValue, '_client_status', _('Client status'));
@@ -231,9 +231,9 @@ return view.extend({
 			so.value.apply(so, res);
 		})
 		so.rmempty = false;
-		if (!features.hm_has_stunclient) {
-			so.description = _('To check NAT Behavior you need to install <a href="%s"><b>stuntman-client</b></a> first')
-				.format('https://github.com/muink/openwrt-stuntman');
+		if (!features.has_stunclient) {
+			so.description = _('To check NAT Behavior you need to install <a href="%s"><b>%s</b></a> first')
+				.format(L.url('admin/system/package-manager') + '?query=stuntman-client', 'stuntman-client');
 			so.readonly = true;
 		} else {
 			so.renderWidget = function(section_id, option_index, cfgvalue) {
@@ -475,9 +475,9 @@ return view.extend({
 
 		so = ss.option(form.ListValue, 'proxy_mode', _('Proxy mode'));
 		so.value('redir', _('Redirect TCP'));
-		if (features.hm_has_tproxy)
+		if (features.has_tproxy)
 			so.value('redir_tproxy', _('Redirect TCP + TProxy UDP'));
-		if (features.hm_has_ip_full && features.hm_has_tun) {
+		if (features.has_ip_full && features.has_tun) {
 			so.value('redir_tun', _('Redirect TCP + Tun UDP'));
 			so.value('tun', _('Tun TCP/UDP'));
 		} else
@@ -521,6 +521,7 @@ return view.extend({
 		so.placeholder = '65536';
 
 		so = ss.option(form.Value, 'tun_udp_timeout', _('UDP NAT expiration time'),
+			_('Aging time of NAT map maintained by client.</br>') +
 			_('In seconds. <code>%s</code> will be used if empty.').format('300'));
 		so.placeholder = '300';
 		so.validate = L.bind(hm.validateTimeDuration, so);
@@ -550,6 +551,47 @@ return view.extend({
 		so = ss.option(form.Value, 'tls_key_path', _('API TLS private key path'));
 		so.datatype = 'file';
 		so.value('/etc/ssl/acme/example.key');
+
+		so = ss.option(hm.GenText, 'tls_ech_key', _('API ECH key'));
+		so.placeholder = '-----BEGIN ECH KEYS-----\nACATwY30o/RKgD6hgeQxwrSiApLaCgU+HKh7B6SUrAHaDwBD/g0APwAAIAAgHjzK\nmadSJjYQIf9o1N5GXjkW4DEEeb17qMxHdwMdNnwADAABAAEAAQACAAEAAwAIdGVz\ndC5jb20AAA==\n-----END ECH KEYS-----';
+		so.hm_placeholder = 'outer-sni.any.domain';
+		so.cols = 30
+		so.rows = 2;
+		so.hm_options = {
+			type: 'ech-keypair',
+			params: '',
+			result: {
+				ech_key: so.option,
+				ech_cfg: 'tls_ech_cfg'
+			}
+		}
+		so.renderWidget = function(section_id, option_index, cfgvalue) {
+			let node = hm.TextValue.prototype.renderWidget.apply(this, arguments);
+			const cbid = this.cbid(section_id) + '._outer_sni';
+
+			node.appendChild(E('div',  { 'class': 'control-group' }, [
+				E('input', {
+					id: cbid,
+					class: 'cbi-input-text',
+					style: 'width: 10em',
+					placeholder: this.hm_placeholder
+				}),
+				E('button', {
+					class: 'cbi-button cbi-button-add',
+					click: ui.createHandlerFn(this, function() {
+						this.hm_options.params = document.getElementById(cbid).value;
+
+						return hm.handleGenKey.call(this, this.hm_options);
+					})
+				}, [ _('Generate') ])
+			]));
+
+			return node;
+		}
+
+		so = ss.option(form.Value, 'tls_ech_cfg', _('API ECH config'),
+			_('This ECH parameter needs to be added to the HTTPS record of the domain.'));
+		so.placeholder = 'AEn+DQBFKwAgACABWIHUGj4u+PIggYXcR5JF0gYk3dCRioBW8uJq9H4mKAAIAAEAAQABAANAEnB1YmxpYy50bHMtZWNoLmRldgAA';
 		/* TLS END */
 
 		/* API START */
@@ -577,7 +619,7 @@ return view.extend({
 
 		so = ss.option(form.DynamicList, 'external_controller_cors_allow_origins', _('CORS Allow origins'),
 			_('CORS allowed origins, <code>*</code> will be used if empty.'));
-		so.placeholder = 'https://yacd.metacubex.one';
+		so.placeholder = 'https://board.zash.run.place';
 
 		so = ss.option(form.Flag, 'external_controller_cors_allow_private_network', _('CORS Allow private network'),
 			_('Allow access from private network.</br>' +
@@ -658,6 +700,9 @@ return view.extend({
 		/* Experimental settings */
 		o = s.taboption('experimental', form.SectionValue, '_experimental', form.NamedSection, 'experimental', 'fchomo', null);
 		ss = o.subsection;
+
+		so = ss.option(form.Flag, 'skip_safe_path_check', _('Disable safe path check'));
+		so.default = so.disabled;
 
 		so = ss.option(form.Flag, 'quic_go_disable_gso', _('Disable GSO of quic-go'));
 		so.default = so.disabled;
@@ -756,7 +801,7 @@ return view.extend({
 			_('Specify target ports to be proxied. Multiple ports must be separated by commas.'));
 		so.create = true;
 		hm.routing_port_type.forEach((res) => {
-			if (res[0] !== 'common_udpport')
+			if (!res[0].match(/_udpport$/))
 				so.value.apply(so, res);
 		})
 		so.validate = L.bind(hm.validateCommonPort, so);
@@ -765,7 +810,7 @@ return view.extend({
 			_('Specify target ports to be proxied. Multiple ports must be separated by commas.'));
 		so.create = true;
 		hm.routing_port_type.forEach((res) => {
-			if (res[0] !== 'common_tcpport')
+			if (!res[0].match(/_tcpport$/))
 				so.value.apply(so, res);
 		})
 		so.validate = L.bind(hm.validateCommonPort, so);
@@ -781,7 +826,7 @@ return view.extend({
 			_('Please ensure that the DNS query of the domains to be processed in the DNS policy</br>' +
 				'are send via DIRECT/Proxy Node in the same semantics as Routing mode.'));
 		so.default = so.disabled;
-		if (!features.hm_has_dnsmasq_full) {
+		if (!features.has_dnsmasq_full) {
 			so.description = _('To enable, you need to install <code>dnsmasq-full</code>.');
 			so.readonly = true;
 			uci.set(data[0], so.section.section, so.option, '');

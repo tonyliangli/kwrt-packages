@@ -2,7 +2,7 @@ local api = require "luci.passwall.api"
 local appname = "passwall"
 local datatypes = api.datatypes
 local fs = api.fs
-local has_singbox = api.finded_com("singbox")
+local has_singbox = api.finded_com("sing-box")
 local has_xray = api.finded_com("xray")
 local has_gfwlist = fs.access("/usr/share/passwall/rules/gfwlist")
 local has_chnlist = fs.access("/usr/share/passwall/rules/chnlist")
@@ -19,6 +19,7 @@ end
 
 local normal_list = {}
 local balancing_list = {}
+local urltest_list = {}
 local shunt_list = {}
 local iface_list = {}
 for k, v in pairs(nodes_table) do
@@ -27,6 +28,9 @@ for k, v in pairs(nodes_table) do
 	end
 	if v.protocol and v.protocol == "_balancing" then
 		balancing_list[#balancing_list + 1] = v
+	end
+	if v.protocol and v.protocol == "_urltest" then
+		urltest_list[#urltest_list + 1] = v
 	end
 	if v.protocol and v.protocol == "_shunt" then
 		shunt_list[#shunt_list + 1] = v
@@ -185,6 +189,9 @@ if (has_singbox or has_xray) and #nodes_table > 0 then
 			for k1, v1 in pairs(balancing_list) do
 				o:value(v1.id, v1.remark)
 			end
+			for k1, v1 in pairs(urltest_list) do
+				o:value(v1.id, v1.remark)
+			end
 			for k1, v1 in pairs(iface_list) do
 				o:value(v1.id, v1.remark)
 			end
@@ -226,6 +233,9 @@ if (has_singbox or has_xray) and #nodes_table > 0 then
 					for k1, v1 in pairs(balancing_list) do
 						o:value(v1.id, v1.remark)
 					end
+					for k1, v1 in pairs(urltest_list) do
+						o:value(v1.id, v1.remark)
+					end
 					for k1, v1 in pairs(iface_list) do
 						o:value(v1.id, v1.remark)
 					end
@@ -250,6 +260,9 @@ if (has_singbox or has_xray) and #nodes_table > 0 then
 			for k1, v1 in pairs(balancing_list) do
 				o:value(v1.id, v1.remark)
 			end
+			for k1, v1 in pairs(urltest_list) do
+				o:value(v1.id, v1.remark)
+			end
 			for k1, v1 in pairs(iface_list) do
 				o:value(v1.id, v1.remark)
 			end
@@ -265,13 +278,13 @@ if (has_singbox or has_xray) and #nodes_table > 0 then
 			o:value("", translate("Close"))
 			o:value("main", translate("Preproxy Node"))
 			for k1, v1 in pairs(normal_list) do
-				if v1.protocol ~= "_balancing" then
+				if v1.protocol ~= "_balancing" and v1.protocol ~= "_urltest" then
 					o:depends({ [vid .. "-default_node"] = v1.id, [vid .. "-preproxy_enabled"] = "1" })
 				end
 			end
 		end
 	else
-		local tips = s:taboption("Main", DummyValue, "tips", " ")
+		local tips = s:taboption("Main", DummyValue, "tips", "　")
 		tips.rawhtml = true
 		tips.cfgvalue = function(t, n)
 			return string.format('<a style="color: red">%s</a>', translate("There are no available nodes, please add or subscribe nodes first."))
@@ -352,15 +365,15 @@ o:value("119.28.28.28")
 o:depends("direct_dns_mode", "tcp")
 
 o = s:taboption("DNS", Value, "direct_dns_dot", translate("Direct DNS DoT"))
-o.default = "tls://1.12.12.12"
-o:value("tls://1.12.12.12")
-o:value("tls://120.53.53.53")
-o:value("tls://36.99.170.86")
-o:value("tls://101.198.191.4")
-o:value("tls://223.5.5.5")
-o:value("tls://223.6.6.6")
-o:value("tls://2400:3200::1")
-o:value("tls://2400:3200:baba::1")
+o.default = "tls://dot.pub@1.12.12.12"
+o:value("tls://dot.pub@1.12.12.12")
+o:value("tls://dot.pub@120.53.53.53")
+o:value("tls://dot.360.cn@36.99.170.86")
+o:value("tls://dot.360.cn@101.198.191.4")
+o:value("tls://dns.alidns.com@223.5.5.5")
+o:value("tls://dns.alidns.com@223.6.6.6")
+o:value("tls://dns.alidns.com@2400:3200::1")
+o:value("tls://dns.alidns.com@2400:3200:baba::1")
 o.validate = chinadns_dot_validate
 o:depends("direct_dns_mode", "dot")
 
@@ -368,7 +381,10 @@ o = s:taboption("DNS", Flag, "filter_proxy_ipv6", translate("Filter Proxy Host I
 o.default = "0"
 
 ---- DNS Forward Mode
-o = s:taboption("DNS", ListValue, "dns_mode", translate("Filter Mode"))
+o = s:taboption("DNS", ListValue, "dns_mode", translate("Filter Mode"),
+			 "<font color='red'>" .. translate(
+				 "If the node uses Xray/Sing-Box shunt, select the matching filter mode (Xray/Sing-Box).") ..
+				 "</font>")
 o:value("udp", translatef("Requery DNS By %s", "UDP"))
 o:value("tcp", translatef("Requery DNS By %s", "TCP"))
 if chinadns_tls == 0 then
@@ -389,7 +405,10 @@ end
 
 ---- SmartDNS Forward Mode
 if api.is_finded("smartdns") then
-	o = s:taboption("DNS", ListValue, "smartdns_dns_mode", translate("Filter Mode"))
+	o = s:taboption("DNS", ListValue, "smartdns_dns_mode", translate("Filter Mode"),
+				 "<font color='red'>" .. translate(
+					 "If the node uses Xray/Sing-Box shunt, select the matching filter mode (Xray/Sing-Box).") ..
+					 "</font>")
 	o:value("socks", "Socks")
 	if has_singbox then
 		o:value("sing-box", "Sing-Box")
@@ -439,6 +458,21 @@ if api.is_finded("smartdns") then
 			t = { value }
 		end
 		return DynamicList.write(self, section, t)
+	end
+	function o.validate(self, value) --禁止私有IP
+		if type(value) == "table" then
+			for _, v in ipairs(value) do
+				if v:match("127%.0%.0%.") or
+				   v:match("192%.168%.") or
+				   v:match("10%.") or
+				   v:match("172%.1[6-9]%.") or
+				   v:match("172%.2[0-9]%.") or
+				   v:match("172%.3[0-1]%.") then
+					return nil, translatef("Private IPs are not allowed: %s", v)
+				end
+			end
+		end
+		return value
 	end
 end
 
@@ -502,17 +536,17 @@ o:depends({singbox_dns_mode = "tcp"})
 
 ---- DoT
 o = s:taboption("DNS", Value, "remote_dns_dot", translate("Remote DNS DoT"))
-o.default = "tls://1.1.1.1"
-o:value("tls://1.0.0.1", "1.0.0.1 (CloudFlare)")
-o:value("tls://1.1.1.1", "1.1.1.1 (CloudFlare)")
-o:value("tls://8.8.4.4", "8.8.4.4 (Google)")
-o:value("tls://8.8.8.8", "8.8.8.8 (Google)")
-o:value("tls://9.9.9.9", "9.9.9.9 (Quad9)")
-o:value("tls://149.112.112.112", "149.112.112.112 (Quad9)")
-o:value("tls://94.140.14.14", "94.140.14.14 (AdGuard)")
-o:value("tls://94.140.15.15", "94.140.15.15 (AdGuard)")
-o:value("tls://208.67.222.222", "208.67.222.222 (OpenDNS)")
-o:value("tls://208.67.220.220", "208.67.220.220 (OpenDNS)")
+o.default = "tls://one.one.one.one@1.1.1.1"
+o:value("tls://one.one.one.one@1.0.0.1", "1.0.0.1 (CloudFlare)")
+o:value("tls://one.one.one.one@1.1.1.1", "1.1.1.1 (CloudFlare)")
+o:value("tls://dns.google@8.8.4.4", "8.8.4.4 (Google)")
+o:value("tls://dns.google@8.8.8.8", "8.8.8.8 (Google)")
+o:value("tls://dns.quad9.net@9.9.9.9", "9.9.9.9 (Quad9)")
+o:value("tls://dns.quad9.net@149.112.112.112", "149.112.112.112 (Quad9)")
+o:value("tls://dns.adguard.com@94.140.14.14", "94.140.14.14 (AdGuard)")
+o:value("tls://dns.adguard.com@94.140.15.15", "94.140.15.15 (AdGuard)")
+o:value("tls://dns.opendns.com@208.67.222.222", "208.67.222.222 (OpenDNS)")
+o:value("tls://dns.opendns.com@208.67.220.220", "208.67.220.220 (OpenDNS)")
 o.validate = chinadns_dot_validate
 o:depends("dns_mode", "dot")
 
@@ -591,6 +625,19 @@ if api.is_finded("smartdns") then
 	o:depends({dns_shunt = "smartdns", tcp_proxy_mode = "proxy", chn_list = "direct"})
 end
 
+o = s:taboption("DNS", Flag, "force_https_soa", translate("Force HTTPS SOA"), translate("Force queries with qtype 65 to respond with an SOA record."))
+o.default = "1"
+o.rmempty = false
+o:depends({dns_shunt = "chinadns-ng"})
+if api.is_finded("smartdns") then
+	o:depends({dns_shunt = "smartdns"})
+end
+
+o = s:taboption("DNS", Flag, "chinadns_ng_cert_verify", translate("DoT Cert verify"), translate("Verify DoT SSL cert. (May fail on some platforms!)"))
+o.default = "0"
+o:depends({direct_dns_mode = "dot"})
+o:depends({dns_mode = "dot"})
+
 o = s:taboption("DNS", Flag, "dns_redirect", translate("DNS Redirect"), translate("Force special DNS server to need proxy devices."))
 o.default = "1"
 o.rmempty = false
@@ -654,7 +701,7 @@ o = s:taboption("Proxy", Flag, "client_proxy", translate("Client Proxy"), transl
 o.default = "1"
 o.rmempty = false
 
-o = s:taboption("Proxy", DummyValue, "_proxy_tips", " ")
+o = s:taboption("Proxy", DummyValue, "_proxy_tips", "　")
 o.rawhtml = true
 o.cfgvalue = function(t, n)
 	return string.format('<a style="color: red" href="%s">%s</a>', api.url("acl"), translate("Want different devices to use different proxy modes/ports/nodes? Please use access control."))
@@ -700,7 +747,7 @@ o = s:taboption("log", Flag, "log_chinadns_ng", translate("Enable") .. " ChinaDN
 o.default = "0"
 o.rmempty = false
 
-o = s:taboption("log", DummyValue, "_log_tips", " ")
+o = s:taboption("log", DummyValue, "_log_tips", "　")
 o.rawhtml = true
 o.cfgvalue = function(t, n)
 	return string.format('<font color="red">%s</font>', translate("It is recommended to disable logging during regular use to reduce system overhead."))

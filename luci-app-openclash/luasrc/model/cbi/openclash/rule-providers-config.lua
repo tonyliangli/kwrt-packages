@@ -114,7 +114,7 @@ o:value("0", translate("Priority Match"))
 o:value("1", translate("Extended Match"))
 
 o = s:option(ListValue, "group", translate("Set Proxy Group"))
-o.description = font_red..bold_on..translate("The Added Proxy Groups Must Exist Except 'DIRECT' & 'REJECT'")..bold_off..font_off
+o.description = font_red..bold_on..translate("The Added Proxy Groups Must Exist Except 'DIRECT' & 'REJECT' & 'REJECT-DROP' & 'PASS' & 'GLOBAL'")..bold_off..font_off
 o.rmempty = true
 local groupnames,filename
 filename = m.uci:get(openclash, "config", "config_path")
@@ -138,6 +138,39 @@ m.uci:foreach("openclash", "groups",
 
 o:value("DIRECT")
 o:value("REJECT")
+o:value("REJECT-DROP")
+o:value("PASS")
+o:value("GLOBAL")
+
+-- [[ other-setting ]]--
+o = s:option(Value, "other_parameters", translate("Other Parameters"))
+o.template = "cbi/tvalue"
+o.rows = 20
+o.wrap = "off"
+o.description = font_red..bold_on..translate("Edit Your Other Parameters Here")..bold_off..font_off
+o.rmempty = true
+function o.cfgvalue(self, section)
+	if self.map:get(section, "other_parameters") == nil then
+		return "# Example:\n"..
+		"# Only support YAML, four spaces need to be reserved at the beginning of each line to maintain formatting alignment\n"..
+		"# 示例：\n"..
+		"# 仅支持 YAML, 每行行首需要多保留四个空格以使脚本处理后能够与上方配置保持格式对齐\n"..
+		"# inline Example:\n"..
+		"#    payload:\n"..
+		"#      - '.blogger.com'\n"..
+		"#      - '*.*.microsoft.com'\n"..
+		"#      - 'books.itunes.apple.com'\n"
+	else
+		return Value.cfgvalue(self, section)
+	end
+end
+function o.validate(self, value)
+	if value then
+		value = value:gsub("\r\n?", "\n")
+		value = value:gsub("%c*$", "")
+	end
+	return value
+end
 
 -- [[ other-setting ]]--
 o = s:option(Value, "other_parameters", translate("Other Parameters"))
