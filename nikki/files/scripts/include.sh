@@ -40,12 +40,6 @@ INCLUDE_UCODE="$UCODE_DIR/include.uc"
 MIXIN_UC="$UCODE_DIR/mixin.uc"
 HIJACK_UT="$UCODE_DIR/hijack.ut"
 
-# ucode
-UCODE_DIR="$HOME_DIR/ucode"
-INCLUDE_UCODE="$UCODE_DIR/include.uc"
-MIXIN_UC="$UCODE_DIR/mixin.uc"
-HIJACK_UT="$UCODE_DIR/hijack.ut"
-
 # scripts
 SH_DIR="$HOME_DIR/scripts"
 INCLUDE_SH="$SH_DIR/include.sh"

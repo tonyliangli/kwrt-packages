@@ -300,7 +300,7 @@ msgstr ""
 msgid "Period of time without Internet access before modem restart."
 msgstr ""
 
-msgid "Period of time without Internet access before network restart or between restart attempts."
+msgid "Period of time without Internet access before network restart."
 msgstr ""
 
 msgid ""
