@@ -7,7 +7,7 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=Bootstrap lightblue Theme
-LUCI_DEPENDS:=
+LUCI_DEPENDS:= +luci-lua-runtime
 
 PKG_LICENSE:=Apache-2.0
 

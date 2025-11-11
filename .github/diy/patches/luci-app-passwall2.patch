@@ -30,7 +30,7 @@
 +	+PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Client:shadowsocksr-libev-ssr-local \
 +	+PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Client:shadowsocksr-libev-ssr-redir \
 +	+PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Server:shadowsocksr-libev-ssr-server \
-+	+PACKAGE_$(PKG_NAME)_INCLUDE_Simple_Obfs:simple-obfs \
++	+PACKAGE_$(PKG_NAME)_INCLUDE_Simple_Obfs:simple-obfs-client \
 +	+PACKAGE_$(PKG_NAME)_INCLUDE_SingBox:sing-box \
 +	+PACKAGE_$(PKG_NAME)_INCLUDE_tuic_client:tuic-client \
 +	+PACKAGE_$(PKG_NAME)_INCLUDE_V2ray_Plugin:v2ray-plugin \
@@ -57,9 +57,9 @@
 @@ -99,7 +111,6 @@ config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Libev_Server
  config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Rust_Client
  	bool "Include Shadowsocks Rust Client"
- 	depends on aarch64||arm||i386||mips||mipsel||x86_64
+ 	depends on !i386
 -	select PACKAGE_shadowsocks-rust-sslocal
- 	default y if aarch64
+ 	default y if aarch64||x86_64
  
  config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Rust_Server
 @@ -110,8 +121,6 @@ config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Rust_Server
@@ -75,7 +75,7 @@
  
  config PACKAGE_$(PKG_NAME)_INCLUDE_Simple_Obfs
  	bool "Include Simple-Obfs (Shadowsocks Plugin)"
--	select PACKAGE_simple-obfs
+-	select PACKAGE_simple-obfs-client
  	default y
  
  config PACKAGE_$(PKG_NAME)_INCLUDE_SingBox
@@ -95,14 +95,14 @@
 
 --- a/luci-app-passwall2/luasrc/controller/passwall2.lua
 +++ b/luci-app-passwall2/luasrc/controller/passwall2.lua
-@@ -74,6 +74,7 @@ function index()
- 	entry({"admin", "services", appname, "clear_all_nodes"}, call("clear_all_nodes")).leaf = true
- 	entry({"admin", "services", appname, "delete_select_nodes"}, call("delete_select_nodes")).leaf = true
- 	entry({"admin", "services", appname, "update_rules"}, call("update_rules")).leaf = true
+@@ -81,6 +81,7 @@ function index()
+ 	entry({"admin", "services", appname, "subscribe_del_all"}, call("subscribe_del_all")).leaf = true
+ 	entry({"admin", "services", appname, "subscribe_manual"}, call("subscribe_manual")).leaf = true
+ 	entry({"admin", "services", appname, "subscribe_manual_all"}, call("subscribe_manual_all")).leaf = true
 +	entry({"admin", "services", appname, "ip"}, call('check_ip')).leaf = true
  
  	--[[Components update]]
- 	local coms = require "luci.passwall2.com"
+ 	entry({"admin", "services", appname, "check_passwall2"}, call("app_check")).leaf = true
 @@ -89,6 +90,61 @@ local function http_write_json(content)
  	http.write_json(content or {code = 1})
  end

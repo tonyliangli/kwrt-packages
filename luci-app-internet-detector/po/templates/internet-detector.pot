@@ -11,13 +11,20 @@ msgid ""
 "<abbr title=\"Light Emitting Diode\">LED</abbr> indicates the Internet status."
 msgstr ""
 
-msgid "Action when connected"
+msgid "<abbr title=\"Light Emitting Diode\">LED</abbr> mode"
 msgstr ""
 
-msgid "Action when disconnected"
+msgid ""
+"<abbr title=\"Light Emitting Diode\">LED</abbr> will display the link activity of this network device."
 msgstr ""
 
 msgid "Add instance"
+msgstr ""
+
+msgid "After connection"
+msgstr ""
+
+msgid "After disconnection"
 msgstr ""
 
 msgid "Alive interval"
@@ -32,13 +39,25 @@ msgstr ""
 msgid "An error has occurred"
 msgstr ""
 
+msgid "Attempt interval"
+msgstr ""
+
 msgid "Attempts"
 msgstr ""
 
 msgid "Big: 248 bytes"
 msgstr ""
 
-msgid "Blink"
+msgid "Blinking (kernel: timer)"
+msgstr ""
+
+msgid "Bot API token is missing!"
+msgstr ""
+
+msgid "Bot token"
+msgstr ""
+
+msgid "Chat ID"
 msgstr ""
 
 msgid "Check type"
@@ -65,13 +84,22 @@ msgstr ""
 msgid "Contents have been saved."
 msgstr ""
 
+msgid "Curl is not available..."
+msgstr ""
+
 msgid "Dead interval"
 msgstr ""
 
 msgid "Dead period"
 msgstr ""
 
+msgid "Debug"
+msgstr ""
+
 msgid "Default port value for TCP connections."
+msgstr ""
+
+msgid "Description"
 msgstr ""
 
 msgid "Device"
@@ -96,9 +124,6 @@ msgid "Dismiss"
 msgstr ""
 
 msgid "DNS query type"
-msgstr ""
-
-msgid "DNS provider"
 msgstr ""
 
 msgid "Edit"
@@ -128,13 +153,16 @@ msgstr ""
 msgid "Enable"
 msgstr ""
 
-msgid "Enable logging"
-msgstr ""
-
 msgid "Enable public-ip-script"
 msgstr ""
 
 msgid "Enabled"
+msgstr ""
+
+msgid "Error"
+msgstr ""
+
+msgid "Error!"
 msgstr ""
 
 msgid "Expecting:"
@@ -171,11 +199,14 @@ msgid "Hosts polling interval when the Internet is up."
 msgstr ""
 
 msgid ""
-"Hosts to check Internet availability. Hosts are polled (in list order) until "
-"at least one of them responds."
+"Hosts for checking Internet availability. Hosts are polled (in list "
+"order) until at least one responds."
 msgstr ""
 
 msgid "Huge: 1492 bytes"
+msgstr ""
+
+msgid "ID of the Telegram chat to which messages will be sent."
 msgstr ""
 
 msgid "ICMP-echo request (ping)"
@@ -184,7 +215,19 @@ msgstr ""
 msgid "ICMP packet data size"
 msgstr ""
 
+msgid "Incorrect bot token?"
+msgstr ""
+
+msgid "Info"
+msgstr ""
+
+msgid "Instances"
+msgstr ""
+
 msgid "Interface"
+msgstr ""
+
+msgid "Interface timeout"
 msgstr ""
 
 msgid "Internet"
@@ -205,13 +248,37 @@ msgstr ""
 msgid "Interval between IP address requests if the IP address is not defined."
 msgstr ""
 
+msgid "Interval between modem restarts."
+msgstr ""
+
+msgid "Interval between network restarts."
+msgstr ""
+
+msgid "Interval between down-script runs."
+msgstr ""
+
+msgid "Interval between up-script runs."
+msgstr ""
+
+msgid "Invalid instance name..."
+msgstr ""
+
 msgid "Jumbo: 9000 bytes"
 msgstr ""
 
 msgid "LED control"
 msgstr ""
 
+msgid "Link On"
+msgstr ""
+
 msgid "Loading"
+msgstr ""
+
+msgid "Log event level."
+msgstr ""
+
+msgid "Logging"
 msgstr ""
 
 msgid "Mailsend is not available..."
@@ -226,6 +293,14 @@ msgstr ""
 msgid ""
 "Maximum number of network restart attempts before Internet access is "
 "available."
+msgstr ""
+
+msgid ""
+"Maximum number of up-script run attempts when connected to the Internet."
+msgstr ""
+
+msgid ""
+"Maximum number of down-script run attempts before Internet access is available."
 msgstr ""
 
 msgid "Maximum timeout for waiting for a response from the host."
@@ -247,6 +322,9 @@ msgid ""
 "interface is used."
 msgstr ""
 
+msgid "Network device activity (kernel: netdev)"
+msgstr ""
+
 msgid ""
 "Network device or interface to restart. If not specified, then the network service is restarted."
 msgstr ""
@@ -260,7 +338,13 @@ msgstr ""
 msgid "No <abbr title=\"Light Emitting Diode\">LED</abbr>s available..."
 msgstr ""
 
+msgid "No messages available. Write something to the bot and try again."
+msgstr ""
+
 msgid "Not scheduled"
+msgstr ""
+
+msgid "Notice"
 msgstr ""
 
 msgid "Number of attempts to request an IP address."
@@ -269,7 +353,22 @@ msgstr ""
 msgid "Off"
 msgstr ""
 
+msgid "Off-state delay"
+msgstr ""
+
+msgid "Off-state delay for blinking option."
+msgstr ""
+
 msgid "On"
+msgstr ""
+
+msgid "On startup"
+msgstr ""
+
+msgid "On-state delay"
+msgstr ""
+
+msgid "On-state delay for blinking option."
 msgstr ""
 
 msgid "One of the following:"
@@ -282,7 +381,7 @@ msgid "Password for SMTP authentication."
 msgstr ""
 
 msgid ""
-"Period of time after connecting to Internet before \"up-script\" runs."
+"Period of time after connecting to Internet before up-script runs."
 msgstr ""
 
 msgid ""
@@ -290,7 +389,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Period of time after disconnecting from Internet before \"down-script\" runs."
+"Period of time after disconnecting from Internet before down-script runs."
 msgstr ""
 
 msgid ""
@@ -313,6 +412,18 @@ msgstr ""
 msgid "Polling interval"
 msgstr ""
 
+msgid "Provider"
+msgstr ""
+
+msgid "Proxy"
+msgstr ""
+
+msgid "Proxy host"
+msgstr ""
+
+msgid "Proxy port"
+msgstr ""
+
 msgid "Public IP"
 msgstr ""
 
@@ -322,7 +433,16 @@ msgstr ""
 msgid "Reboot device"
 msgstr ""
 
+msgid "Reboot device if the Internet is disconnected at service startup."
+msgstr ""
+
+msgid "Receive"
+msgstr ""
+
 msgid "Recipient"
+msgstr ""
+
+msgid "Request chat ID from bot API"
 msgstr ""
 
 msgid "Restart"
@@ -334,13 +454,19 @@ msgstr ""
 msgid "Restart modem"
 msgstr ""
 
+msgid "Restart modem if the Internet is disconnected at service startup."
+msgstr ""
+
 msgid "Restart network"
+msgstr ""
+
+msgid "Restart network if the Internet is disconnected at service startup."
 msgstr ""
 
 msgid "Restart service"
 msgstr ""
 
-msgid "Restart timeout"
+msgid "Device timeout"
 msgstr ""
 
 msgid "Run interval"
@@ -350,6 +476,12 @@ msgid "Run if Internet state is"
 msgstr ""
 
 msgid "Run service at startup"
+msgstr ""
+
+msgid "Run down-script if the Internet is disconnected at service startup."
+msgstr ""
+
+msgid "Run up-script if the Internet is connected at service startup."
 msgstr ""
 
 msgid "Running"
@@ -370,6 +502,9 @@ msgstr ""
 msgid "Security"
 msgstr ""
 
+msgid "Send message on service startup."
+msgstr ""
+
 msgid "Sender"
 msgstr ""
 
@@ -385,13 +520,10 @@ msgstr ""
 msgid "Service configuration"
 msgstr ""
 
-msgid "Service for determining the public IP address through DNS."
+msgid "Service for determining the public IP address."
 msgstr ""
 
 msgid "Service: detector always runs as a system service."
-msgstr ""
-
-msgid "Service instances"
 msgstr ""
 
 msgid "Set the modem to be allowed to use any band."
@@ -430,13 +562,31 @@ msgstr ""
 msgid "TCP port connection"
 msgstr ""
 
+msgid "Telegram bot API token."
+msgstr ""
+
+msgid "Telegram message will be sent when connected or disconnected from the Internet."
+msgstr ""
+
 msgid "The type of record requested in the DNS query (if the service supports it)."
 msgstr ""
 
 msgid "TLS: use STARTTLS if the server supports it."
 msgstr ""
 
-msgid "Timeout between stopping and starting a network device."
+msgid "Timeout between stopping and starting a network device when restarting."
+msgstr ""
+
+msgid "Timeout between stopping and starting a ModemManger interface when restarting."
+msgstr ""
+
+msgid "To support HTTP services, you need to install curl."
+msgstr ""
+
+msgid "To support URL checking, you need to install curl."
+msgstr ""
+
+msgid "Transmit"
 msgstr ""
 
 msgid "Type a time string"
@@ -454,6 +604,14 @@ msgstr ""
 msgid "Unlock modem bands"
 msgstr ""
 
+msgid "URL test (HTTP)"
+msgstr ""
+
+msgid ""
+"URLs for checking Internet availability. URLs are polled (in list "
+"order) until at least one returns HTTP status code 200."
+msgstr ""
+
 msgid "User"
 msgstr ""
 
@@ -466,6 +624,9 @@ msgstr ""
 msgid "Waiting for a reboot to complete before performing a forced reboot."
 msgstr ""
 
+msgid "Warning"
+msgstr ""
+
 msgid "Web UI only (UI detector)"
 msgstr ""
 
@@ -475,10 +636,14 @@ msgstr ""
 msgid "When email will be sent"
 msgstr ""
 
+msgid "When message will be sent"
+msgstr ""
+
 msgid "Windows: 32 bytes"
 msgstr ""
 
-msgid "Write messages to the system log."
+msgid ""
+"You need to register a new %sTelegram bot%s. Then get the bot's API token and paste it into the <code>Bot token</code> field. After that, open a chat with the bot, write something (in the Telegram app) and you will be able to get the chat ID using the <code>ID</code> button."
 msgstr ""
 
 msgid "after connection"
@@ -508,10 +673,16 @@ msgstr ""
 msgid "hours"
 msgstr ""
 
+msgid "infinitely"
+msgstr ""
+
 msgid "min"
 msgstr ""
 
 msgid "minutes"
+msgstr ""
+
+msgid "msec"
 msgstr ""
 
 msgid "sec"

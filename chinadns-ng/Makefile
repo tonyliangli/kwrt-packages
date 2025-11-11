@@ -1,8 +1,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=chinadns-ng
-PKG_VERSION:=2025.03.27
-PKG_RELEASE:=10
+PKG_VERSION:=2025.08.09
+PKG_RELEASE:=13
 
 ifeq ($(ARCH),aarch64)
   ifeq ($(BOARD),rockchip)
@@ -79,7 +79,7 @@ define Package/chinadns-ng
   SUBMENU:=IP Addresses and Names
   TITLE:=ChinaDNS next generation, refactoring with epoll and ipset.
   URL:=https://github.com/zfl9/chinadns-ng
-  DEPENDS:=@(aarch64||arm||i386||mips||mipsel||mips64||mips64el||x86_64||riscv64) +ipset
+  DEPENDS:=@(aarch64||arm||i386||mips||mipsel||mips64||mips64el||x86_64||riscv64)
 endef
 
 define Build/Compile

@@ -95,7 +95,7 @@ class DNSAddress {
 
 	toString() {
 		return this.addr + (this.params.size === 0 ? '' : '#' +
-			['detour', 'h3', 'ecs', 'ecs-override'].map((k) => {
+			['detour', 'h3', 'skip-cert-verify', 'ecs', 'ecs-override', 'disable-ipv4', 'disable-ipv6'].map((k) => {
 				return this.params.has(k) ? '%s=%s'.format(k, encodeURI(this.params.get(k))) : null;
 			}).filter(v => v).join('&')
 		);
@@ -229,7 +229,7 @@ function parseDNSYaml(field, name, cfg) {
 
 	let detour = addr.parseParam('detour');
 	if (detour)
-		addr.setParam('detour', hm.preset_outbound.full.map(([key, label]) => key).includes(detour) ? detour : this.calcID(hm.glossary["proxy_group"].field, detour))
+		addr.setParam('detour', hm.preset_outbound.full.map(([key, label]) => key).includes(detour) ? detour : this.calcID(hm.glossary["proxy_group"].field, detour));
 
 	// key mapping
 	let config = {
@@ -268,7 +268,7 @@ function parseDNSPolicyYaml(field, name, cfg) {
 		type: type,
 		...Object.fromEntries([[type, rules]]),
 		server: (Array.isArray(cfg) ? cfg : [cfg]).map((dns) => this.calcID(hm.glossary["dns_server"].field, dns)),
-		//proxy: null
+		//proxy: null // fchomo unique features
 	};
 
 	return config;
@@ -594,7 +594,7 @@ function renderPayload(s, total, uciconfig) {
 			return true;
 		}
 
-		o = s.option((hm.less_24_10 || !hm.pr7558_merged) ? hm.DynamicList : form.DynamicList, prefix + 'fused', _('Factor') + ' ++',
+		o = s.option(!hm.pr7558_merged ? hm.DynamicList : form.DynamicList, prefix + 'fused', _('Factor') + ' ++', // @pr7558_merged
 			_('Content will not be verified, Please make sure you enter it correctly.'));
 		extenbox[n].forEach((type) => {
 			o.depends(Object.fromEntries([['type', type], [prefix + 'type', /.+/]]));
@@ -658,8 +658,8 @@ function renderRules(s, uciconfig) {
 	o.load = function(section_id) {
 		return form.DummyValue.prototype.load.call(this, section_id) || new RulesEntry().toString('json');
 	}
-	o.write = L.bind(form.AbstractValue.prototype.write, o);
-	o.remove = L.bind(form.AbstractValue.prototype.remove, o);
+	o.write = form.AbstractValue.prototype.write;
+	o.remove = form.AbstractValue.prototype.remove;
 	o.editable = true;
 
 	o = s.option(form.ListValue, 'type', _('Type'));
@@ -677,13 +677,13 @@ function renderRules(s, uciconfig) {
 		if (['GEOIP', 'IP-ASN', 'IP-CIDR', 'IP-CIDR6', 'IP-SUFFIX', 'RULE-SET'].includes(value)) {
 			['no-resolve', 'src'].forEach((opt) => {
 				let UIEl = this.section.getUIElement(section_id, opt);
-				UIEl.node.querySelector('input').disabled = null;
+				UIEl.node.querySelector('input').removeAttribute('disabled');
 			});
 		} else {
 			['no-resolve', 'src'].forEach((opt) => {
 				let UIEl = this.section.getUIElement(section_id, opt);
 				UIEl.setValue('');
-				UIEl.node.querySelector('input').disabled = 'true';
+				UIEl.node.querySelector('input').disabled = true;
 			});
 
 			let UIEl = this.section.getUIElement(section_id, 'entry');
@@ -894,7 +894,7 @@ return view.extend({
 
 		/* General fields */
 		so = ss.taboption('field_general', form.Value, 'label', _('Label'));
-		so.load = L.bind(hm.loadDefaultLabel, so);
+		so.load = hm.loadDefaultLabel;
 		so.validate = function(section_id, value) {
 			if (value.match(/[,]/))
 				return _('Expecting: %s').format(_('not included ","'));
@@ -975,14 +975,14 @@ return view.extend({
 		hm.health_checkurls.forEach((res) => {
 			so.value.apply(so, res);
 		})
-		so.validate = L.bind(hm.validateUrl, so);
+		so.validate = hm.validateUrl;
 		so.depends({type: 'select', '!reverse': true});
 		so.modalonly = true;
 
 		so = ss.taboption('field_health', form.Value, 'interval', _('Health check interval'),
 			_('In seconds. <code>%s</code> will be used if empty.').format('600'));
 		so.placeholder = '600';
-		so.validate = L.bind(hm.validateTimeDuration, so);
+		so.validate = hm.validateTimeDuration;
 		so.depends({type: 'select', '!reverse': true});
 		so.modalonly = true;
 
@@ -1128,13 +1128,21 @@ return view.extend({
 		/* Import mihomo config end */
 
 		so = ss.option(form.Value, 'label', _('Label'));
-		so.load = L.bind(hm.loadDefaultLabel, so);
-		so.validate = L.bind(hm.validateUniqueValue, so);
+		so.load = hm.loadDefaultLabel;
+		so.validate = hm.validateUniqueValue;
 		so.modalonly = true;
 
 		so = ss.option(form.Flag, 'enabled', _('Enable'));
 		so.default = so.enabled;
 		so.editable = true;
+		so.validate = function(/* ... */) {
+			let n = 0;
+
+			return hm.validatePresetIDs.call(this, [
+				['select', 'type'],
+				['select', `payload${n}_` + 'rule_set']
+			], ...arguments);
+		}
 
 		renderRules(ss, data[0]);
 
@@ -1145,9 +1153,10 @@ return view.extend({
 			return new RulesEntry(uci.get(data[0], section_id, 'entry')).subrule || '';
 		}
 		so.validate = function(section_id, value) {
+			let UIEl = this.section.getUIElement(section_id, 'detour');
 			value = this.formvalue(section_id);
 
-			this.section.getUIElement(section_id, 'detour').node.querySelector('select').disabled = value ? 'true' : null;
+			UIEl.node.querySelector('select').disabled = value ? true : null;
 
 			return true;
 		}
@@ -1215,8 +1224,8 @@ return view.extend({
 		/* Import mihomo config end */
 
 		so = ss.option(form.Value, 'label', _('Label'));
-		so.load = L.bind(hm.loadDefaultLabel, so);
-		so.validate = L.bind(hm.validateUniqueValue, so);
+		so.load = hm.loadDefaultLabel;
+		so.validate = hm.validateUniqueValue;
 		so.modalonly = true;
 
 		so = ss.option(form.Flag, 'enabled', _('Enable'));
@@ -1226,7 +1235,7 @@ return view.extend({
 		so = ss.option(form.Value, 'group', _('Sub rule group'));
 		so.value('sub-rule1');
 		so.rmempty = false;
-		so.validate = L.bind(hm.validateAuthUsername, so);
+		so.validate = hm.validateAuthUsername;
 		so.editable = true;
 
 		renderRules(ss, data[0]);
@@ -1250,37 +1259,44 @@ return view.extend({
 		so = ss.option(form.MultiValue, 'boot_server', _('Bootstrap DNS server'),
 			_('Used to resolve the domain of the DNS server. Must be IP.'));
 		so.default = 'default-dns';
-		so.load = L.bind(loadDNSServerLabel, so);
-		so.validate = L.bind(validateNameserver, so);
+		so.load = loadDNSServerLabel;
+		so.validate = validateNameserver;
 		so.rmempty = false;
 
 		so = ss.option(form.MultiValue, 'bootnode_server', _('Bootstrap DNS server (Node)'),
 			_('Used to resolve the domain of the Proxy node.'));
 		so.default = 'default-dns';
-		so.load = L.bind(loadDNSServerLabel, so);
-		so.validate = L.bind(validateNameserver, so);
+		so.load = loadDNSServerLabel;
+		so.validate = validateNameserver;
 		so.rmempty = false;
 
+		const ddesc_disabled = _('Final DNS server');
+		const fdesc_disabled = _('Fallback DNS server');
+		const ddesc_enabled = _('Final DNS server (For non-poisoned domains)') + '</br>' +
+			_('Used to resolve domains that can be directly connected. Can use domestic DNS servers or ECS.');
+		const fdesc_enabled = _('Final DNS server (For poisoned domains)') + '</br>' +
+			_('Used to resolve domains you want to proxy. Recommended to configure %s for DNS servers.').format(_('Proxy Group'));
+
 		so = ss.option(form.MultiValue, 'default_server', _('Default DNS server'));
-		so.description = uci.get(data[0], so.section.section, 'fallback_server') ? _('Final DNS server (For non-poisoned domains)') : _('Final DNS server');
+		so.description = uci.get(data[0], so.section.section, 'fallback_server') ? ddesc_enabled : ddesc_disabled;
 		so.default = 'default-dns';
-		so.load = L.bind(loadDNSServerLabel, so);
-		so.validate = L.bind(validateNameserver, so);
+		so.load = loadDNSServerLabel;
+		so.validate = validateNameserver;
 		so.rmempty = false;
 
 		so = ss.option(form.MultiValue, 'fallback_server', _('Fallback DNS server'));
-		so.description = uci.get(data[0], so.section.section, 'fallback_server') ? _('Final DNS server (For poisoned domains)') : _('Fallback DNS server');
-		so.load = L.bind(loadDNSServerLabel, so);
-		so.validate = L.bind(validateNameserver, so);
+		so.description = uci.get(data[0], so.section.section, 'fallback_server') ? fdesc_enabled : fdesc_disabled;
+		so.load = loadDNSServerLabel;
+		so.validate = validateNameserver;
 		so.onchange = function(ev, section_id, value) {
 			let ddesc = this.section.getUIElement(section_id, 'default_server').node.nextSibling;
 			let fdesc = ev.target.nextSibling;
 			if (value.length > 0) {
-				ddesc.innerHTML = _('Final DNS server (For non-poisoned domains)');
-				fdesc.innerHTML = _('Final DNS server (For poisoned domains)');
+				ddesc.innerHTML = ddesc_enabled;
+				fdesc.innerHTML = fdesc_enabled;
 			} else {
-				ddesc.innerHTML = _('Final DNS server');
-				fdesc.innerHTML = _('Fallback DNS server');
+				ddesc.innerHTML = ddesc_disabled;
+				fdesc.innerHTML = fdesc_disabled;
 			}
 		}
 		/* DNS settings END */
@@ -1305,12 +1321,28 @@ return view.extend({
 			const o = new hm.HandleImport(this.map, this, _('Import mihomo config'),
 				_('Please type <code>%s</code> fields of mihomo config.</br>')
 					.format(field));
-			o.placeholder = 'nameserver:\n' +
-							'- 223.5.5.5\n' +
-							'- tls://8.8.4.4:853\n' +
-							'- https://doh.pub/dns-query#DIRECT\n' +
-							'- https://dns.alidns.com/dns-query#auto&h3=true&ecs=1.1.1.1/24\n' +
+			o.placeholder = 'dns:\n' +
+							'  default-nameserver:\n' +
+							'    - 223.5.5.5\n' +
+							'    - tls://8.8.4.4:853\n' +
+							'    - https://doh.pub/dns-query#DIRECT\n' +
+							'    - https://dns.alidns.com/dns-query#auto&h3=true&ecs=1.1.1.1/24\n' +
+							'  nameserver-policy:\n' +
+							"    'geosite:category-ads-all': rcode://refused\n" +
+							"    '+.arpa': '10.0.0.1'\n" +
+							"    'rule-set:cn':\n" +
+							'    - https://doh.pub/dns-query\n' +
+							'    - https://dns.alidns.com/dns-query\n' +
+							'  nameserver:\n' +
+							'    - https://doh.pub/dns-query\n' +
+							'    - https://dns.alidns.com/dns-query\n' +
+							'  fallback:\n' +
+							'    - tls://8.8.4.4\n' +
+							'    - tls://1.1.1.1\n' +
+							'  proxy-server-nameserver:\n' +
+							'    - https://doh.pub/dns-query\n' +
 							'  ...'
+			o.overridecommand = '.dns | pick(["default-nameserver", "proxy-server-nameserver", "nameserver", "fallback", "nameserver-policy"]) | with(.["nameserver-policy"]; . = [.[]] | flatten) | [.[][]] | unique'
 			o.parseYaml = function(field, name, cfg) {
 				let config = hm.HandleImport.prototype.parseYaml.call(this, field, name, cfg);
 
@@ -1333,8 +1365,8 @@ return view.extend({
 		/* Import mihomo config end */
 
 		so = ss.option(form.Value, 'label', _('Label'));
-		so.load = L.bind(hm.loadDefaultLabel, so);
-		so.validate = L.bind(hm.validateUniqueValue, so);
+		so.load = hm.loadDefaultLabel;
+		so.validate = hm.validateUniqueValue;
 		so.modalonly = true;
 
 		so = ss.option(form.Flag, 'enabled', _('Enable'));
@@ -1342,8 +1374,8 @@ return view.extend({
 		so.editable = true;
 
 		so = ss.option(form.DummyValue, 'address', _('Address'));
-		so.write = L.bind(form.AbstractValue.prototype.write, so);
-		so.remove = L.bind(form.AbstractValue.prototype.remove, so);
+		so.write = form.AbstractValue.prototype.write;
+		so.remove = form.AbstractValue.prototype.remove;
 		so.editable = true;
 
 		so = ss.option(form.Value, 'addr', _('Address'));
@@ -1357,21 +1389,19 @@ return view.extend({
 			// params only available on DoH
 			// https://github.com/muink/mihomo/blob/43f21c0b412b7a8701fe7a2ea6510c5b985a53d6/config/config.go#L1211C8-L1211C14
 			if (value.match(/^https?:\/\//)){
-				this.section.getUIElement(section_id, 'h3').node.querySelector('input').disabled = null;
-				this.section.getUIElement(section_id, 'ecs').node.querySelector('input').disabled = null;
-				this.section.getUIElement(section_id, 'ecs-override').node.querySelector('input').disabled = null;
+				this.section.getUIElement(section_id, 'h3').node.querySelector('input').removeAttribute('disabled');
 			} else {
 				let UIEl = this.section.getUIElement(section_id, 'address');
 
-				let newvalue = new DNSAddress(UIEl.getValue()).setParam('h3').setParam('ecs').setParam('ecs-override').toString();
+				let newvalue = new DNSAddress(UIEl.getValue()).setParam('h3').toString();
 
 				UIEl.node.previousSibling.innerText = newvalue;
 				UIEl.setValue(newvalue);
 
-				['h3', 'ecs', 'ecs-override'].forEach((opt) => {
+				['h3'].forEach((opt) => {
 					let UIEl = this.section.getUIElement(section_id, opt);
 					UIEl.setValue('');
-					UIEl.node.querySelector('input').disabled = 'true';
+					UIEl.node.querySelector('input').disabled = true;
 				});
 			}
 
@@ -1422,6 +1452,25 @@ return view.extend({
 		so.write = function() {};
 		so.modalonly = true;
 
+		so = ss.option(form.Flag, 'skip-cert-verify', _('Skip cert verify'),
+			_('Donot verifying server certificate.') +
+			'<br/>' +
+			_('This is <strong>DANGEROUS</strong>, your traffic is almost like <strong>PLAIN TEXT</strong>! Use at your own risk!'));
+		so.default = so.disabled;
+		so.load = function(section_id) {
+			return boolToFlag(new DNSAddress(uci.get(data[0], section_id, 'address')).parseParam('skip-cert-verify') ? true : false);
+		}
+		so.onchange = function(ev, section_id, value) {
+			let UIEl = this.section.getUIElement(section_id, 'address');
+
+			let newvalue = new DNSAddress(UIEl.getValue()).setParam('skip-cert-verify', flagToBool(value) || null).toString();
+
+			UIEl.node.previousSibling.innerText = newvalue;
+			UIEl.setValue(newvalue);
+		}
+		so.write = function() {};
+		so.modalonly = true;
+
 		so = ss.option(form.Value, 'ecs', _('EDNS Client Subnet'));
 		so.datatype = 'cidr';
 		so.load = function(section_id) {
@@ -1439,7 +1488,7 @@ return view.extend({
 		so.modalonly = true;
 
 		so = ss.option(form.Flag, 'ecs-override', _('ECS override'),
-			_('Override ECS in original request.'));
+			_('Override the existing ECS in original request.'));
 		so.default = so.disabled;
 		so.load = function(section_id) {
 			return boolToFlag(new DNSAddress(uci.get(data[0], section_id, 'address')).parseParam('ecs-override') ? true : false);
@@ -1454,6 +1503,38 @@ return view.extend({
 		}
 		so.write = function() {};
 		so.depends({'ecs': /.+/});
+		so.modalonly = true;
+
+		so = ss.option(form.Flag, 'disable-ipv4', _('Discard A responses'));
+		so.default = so.disabled;
+		so.load = function(section_id) {
+			return boolToFlag(new DNSAddress(uci.get(data[0], section_id, 'address')).parseParam('disable-ipv4') ? true : false);
+		}
+		so.onchange = function(ev, section_id, value) {
+			let UIEl = this.section.getUIElement(section_id, 'address');
+
+			let newvalue = new DNSAddress(UIEl.getValue()).setParam('disable-ipv4', flagToBool(value) || null).toString();
+
+			UIEl.node.previousSibling.innerText = newvalue;
+			UIEl.setValue(newvalue);
+		}
+		so.write = function() {};
+		so.modalonly = true;
+
+		so = ss.option(form.Flag, 'disable-ipv6', _('Discard AAAA responses'));
+		so.default = so.disabled;
+		so.load = function(section_id) {
+			return boolToFlag(new DNSAddress(uci.get(data[0], section_id, 'address')).parseParam('disable-ipv6') ? true : false);
+		}
+		so.onchange = function(ev, section_id, value) {
+			let UIEl = this.section.getUIElement(section_id, 'address');
+
+			let newvalue = new DNSAddress(UIEl.getValue()).setParam('disable-ipv6', flagToBool(value) || null).toString();
+
+			UIEl.node.previousSibling.innerText = newvalue;
+			UIEl.setValue(newvalue);
+		}
+		so.write = function() {};
 		so.modalonly = true;
 		/* DNS server END */
 
@@ -1506,13 +1587,19 @@ return view.extend({
 		/* Import mihomo config end */
 
 		so = ss.option(form.Value, 'label', _('Label'));
-		so.load = L.bind(hm.loadDefaultLabel, so);
-		so.validate = L.bind(hm.validateUniqueValue, so);
+		so.load = hm.loadDefaultLabel;
+		so.validate = hm.validateUniqueValue;
 		so.modalonly = true;
 
 		so = ss.option(form.Flag, 'enabled', _('Enable'));
 		so.default = so.enabled;
 		so.editable = true;
+		so.validate = function(/* ... */) {
+			return hm.validatePresetIDs.call(this, [
+				['select', 'type'],
+				['', 'rule_set']
+			], ...arguments);
+		}
 
 		so = ss.option(form.ListValue, 'type', _('Type'));
 		so.value('domain', _('Domain'));
@@ -1548,8 +1635,8 @@ return view.extend({
 		so = ss.option(form.MultiValue, 'server', _('DNS server'));
 		so.value('default-dns');
 		so.default = 'default-dns';
-		so.load = L.bind(loadDNSServerLabel, so);
-		so.validate = L.bind(validateNameserver, so);
+		so.load = loadDNSServerLabel;
+		so.validate = validateNameserver;
 		so.rmempty = false;
 		so.editable = true;
 

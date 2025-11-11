@@ -3,8 +3,9 @@
 	"vendor": "Producent",
 	"product": "Model",
 	"revision": "Wersja",
-	"imei": "IMEI",
+	"imei": "Identyfikator modemu (IMEI)",
 	"iccid": "Numer karty SIM (ICCID)",
+	"imsi": "Identyfikator abonenta (IMSI)",
 	"parameters": "Parametry",
 	"signal": "Sygnał",
 	"mode": "Technologia",
@@ -33,5 +34,6 @@
 	"fair": "słaby",
 	"poor": "zły",
 	"verypoor": "bardzo zły",
-	"pleasewait": "Proszę czekać"
+	"pleasewait": "Proszę czekać",
+	"country": "Kraj"
 }

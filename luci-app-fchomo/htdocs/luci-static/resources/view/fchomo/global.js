@@ -145,7 +145,7 @@ return view.extend({
 				const playButton = mapEl.querySelector('.cbi-map-descr > img');
 				const audio = mapEl.querySelector('.cbi-map-descr > audio');
 
-				playButton.addEventListener('click', function() {
+				playButton.addEventListener('click', () => {
 					if (audio.paused)
 						audio.play();
 				});
@@ -208,7 +208,7 @@ return view.extend({
 			return E([
 				E('button', {
 					'class': 'cbi-button cbi-button-apply',
-					'click': ui.createHandlerFn(this, function() {
+					'click': ui.createHandlerFn(this, () => {
 						let weight = document.getElementById(ElId);
 
 						weight.innerHTML = '';
@@ -257,7 +257,7 @@ return view.extend({
 					]),
 					E('button', {
 						'class': 'cbi-button cbi-button-apply',
-						'click': ui.createHandlerFn(this, function() {
+						'click': ui.createHandlerFn(this, () => {
 							const stun = this.formvalue(this.section.section);
 							const l4proto = document.getElementById('_status_nattest_l4proto').value;
 
@@ -299,10 +299,12 @@ return view.extend({
 		ss = o.subsection;
 
 		if (!res_ver_geoip || !res_ver_geosite) {
-			so = ss.option(form.Button, '_upload_initia', _('Upload initial package'));
+			so = ss.option(form.Button, '_upload_initia', _('Upload initial package'),
+				_('Click <a target="_blank" href="%s" rel="noreferrer noopener">here</a> to download the latest initial package.')
+					.format('https://raw.githubusercontent.com/fcshark-org/openwrt-fchomo/refs/heads/initialpack/initial.tgz'));
 			so.inputstyle = 'action';
 			so.inputtitle = _('Upload...');
-			so.onclick = L.bind(hm.uploadInitialPack, so);
+			so.onclick = hm.uploadInitialPack;
 		}
 
 		so = ss.option(form.Flag, 'auto_update', _('Auto update'),
@@ -402,12 +404,10 @@ return view.extend({
 		so.default = 'off';
 
 		so = ss.option(form.ListValue, 'log_level', _('Log level'));
-		so.value('silent', _('Silent'));
-		so.value('error', _('Error'));
-		so.value('warning', _('Warning'));
-		so.value('info', _('Info'));
-		so.value('debug', _('Debug'));
 		so.default = 'warning';
+		hm.log_levels.forEach((res) => {
+			so.value.apply(so, res);
+		})
 
 		so = ss.option(form.Flag, 'etag_support', _('ETag support'));
 		so.default = so.enabled;
@@ -424,12 +424,12 @@ return view.extend({
 		so = ss.option(form.Value, 'keep_alive_interval', _('TCP-Keep-Alive interval'),
 			_('In seconds. <code>%s</code> will be used if empty.').format('30'));
 		so.placeholder = '30';
-		so.validate = L.bind(hm.validateTimeDuration, so);
+		so.validate = hm.validateTimeDuration;
 
 		so = ss.option(form.Value, 'keep_alive_idle', _('TCP-Keep-Alive idle timeout'),
 			_('In seconds. <code>%s</code> will be used if empty.').format('600'));
 		so.placeholder = '600';
-		so.validate = L.bind(hm.validateTimeDuration, so);
+		so.validate = hm.validateTimeDuration;
 
 		/* Global Authentication */
 		o = s.taboption('general', form.SectionValue, '_global', form.NamedSection, 'global', 'fchomo', _('Global Authentication'));
@@ -438,7 +438,7 @@ return view.extend({
 		so = ss.option(form.DynamicList, 'authentication', _('User Authentication'));
 		so.datatype = 'list(string)';
 		so.placeholder = 'user1:pass1';
-		so.validate = L.bind(hm.validateAuth, so);
+		so.validate = hm.validateAuth;
 
 		so = ss.option(form.DynamicList, 'skip_auth_prefixes', _('No Authentication IP ranges'));
 		so.datatype = 'list(cidr)';
@@ -467,7 +467,7 @@ return view.extend({
 		so.placeholder = '7892';
 		so.rmempty = false;
 
-		// Not required for v1.19.2+
+		// @Not required for v1.19.2+
 		so = ss.option(form.Value, 'tunnel_port', _('DNS port'));
 		so.datatype = 'port';
 		so.placeholder = '7893';
@@ -489,7 +489,7 @@ return view.extend({
 		o = s.taboption('inbound', form.SectionValue, '_inbound', form.NamedSection, 'inbound', 'fchomo', _('Tun settings'));
 		ss = o.subsection;
 
-		so = ss.option(form.RichListValue || form.ListValue, 'tun_stack', _('Stack'), // less_24_10
+		so = ss.option(form.RichListValue, 'tun_stack', _('Stack'),
 			_('Tun stack.'));
 		so.value('system', _('System'), _('Less compatibility and sometimes better performance.'));
 		if (features.with_gvisor) {
@@ -498,16 +498,6 @@ return view.extend({
 		}
 		so.default = 'system';
 		so.rmempty = false;
-		if (hm.less_24_10)
-			so.onchange = function(ev, section_id, value) {
-				var desc = ev.target.nextSibling;
-				if (value === 'mixed')
-					desc.innerHTML = _('Mixed <code>system</code> TCP stack and <code>gVisor</code> UDP stack.');
-				else if (value === 'gvisor')
-					desc.innerHTML = _('Based on google/gvisor.');
-				else if (value === 'system')
-					desc.innerHTML = _('Less compatibility and sometimes better performance.');
-			}
 
 		so = ss.option(form.Value, 'tun_mtu', _('MTU'));
 		so.datatype = 'uinteger';
@@ -524,11 +514,15 @@ return view.extend({
 			_('Aging time of NAT map maintained by client.</br>') +
 			_('In seconds. <code>%s</code> will be used if empty.').format('300'));
 		so.placeholder = '300';
-		so.validate = L.bind(hm.validateTimeDuration, so);
+		so.validate = hm.validateTimeDuration;
 
 		so = ss.option(form.Flag, 'tun_endpoint_independent_nat', _('Endpoint-Independent NAT'),
 			_('Performance may degrade slightly, so it is not recommended to enable on when it is not needed.'));
 		so.default = so.disabled;
+
+		so = ss.option(form.Flag, 'tun_disable_icmp_forwarding', _('Disable ICMP Forwarding'),
+			_('Prevent ICMP loopback issues in some cases. Ping will not show real delay.'));
+		so.default = so.enabled;
 		/* Inbound END */
 
 		/* TLS START */
@@ -552,6 +546,17 @@ return view.extend({
 		so.datatype = 'file';
 		so.value('/etc/ssl/acme/example.key');
 
+		so = ss.option(form.ListValue, 'tls_client_auth_type', _('API Client Auth type') + _(' (mTLS)'));
+		so.default = hm.tls_client_auth_types[0][0];
+		hm.tls_client_auth_types.forEach((res) => {
+			so.value.apply(so, res);
+		})
+
+		so = ss.option(form.Value, 'tls_client_auth_cert_path', _('API Client Auth Certificate path') + _(' (mTLS)'),
+			_('The %s public key, in PEM format.').format(_('Client')));
+		so.value('/etc/fchomo/certs/client_publickey.pem');
+		so.validate = L.bind(hm.validateMTLSClientAuth, so, 'tls_client_auth_type');
+
 		so = ss.option(hm.GenText, 'tls_ech_key', _('API ECH key'));
 		so.placeholder = '-----BEGIN ECH KEYS-----\nACATwY30o/RKgD6hgeQxwrSiApLaCgU+HKh7B6SUrAHaDwBD/g0APwAAIAAgHjzK\nmadSJjYQIf9o1N5GXjkW4DEEeb17qMxHdwMdNnwADAABAAEAAQACAAEAAwAIdGVz\ndC5jb20AAA==\n-----END ECH KEYS-----';
 		so.hm_placeholder = 'outer-sni.any.domain';
@@ -560,13 +565,15 @@ return view.extend({
 		so.hm_options = {
 			type: 'ech-keypair',
 			params: '',
-			result: {
-				ech_key: so.option,
-				ech_cfg: 'tls_ech_cfg'
+			callback: function(result) {
+				return [
+					[this.option, result.ech_key],
+					['tls_ech_cfg', result.ech_cfg]
+				]
 			}
 		}
 		so.renderWidget = function(section_id, option_index, cfgvalue) {
-			let node = hm.TextValue.prototype.renderWidget.apply(this, arguments);
+			let node = hm.TextValue.prototype.renderWidget.call(this, section_id, option_index, cfgvalue);
 			const cbid = this.cbid(section_id) + '._outer_sni';
 
 			node.appendChild(E('div',  { 'class': 'control-group' }, [
@@ -578,7 +585,7 @@ return view.extend({
 				}),
 				E('button', {
 					class: 'cbi-button cbi-button-add',
-					click: ui.createHandlerFn(this, function() {
+					click: ui.createHandlerFn(this, () => {
 						this.hm_options.params = document.getElementById(cbid).value;
 
 						return hm.handleGenKey.call(this, this.hm_options);
@@ -748,19 +755,19 @@ return view.extend({
 		so.placeholder = '9000';
 		so.rmempty = false;
 
-		so = ss.taboption('interface', form.Value, 'self_mark', _('Routing mark'),
+		so = ss.taboption('interface', form.Value, 'self_mark', _('Routing mark (Fwmark)'),
 			_('Priority: Proxy Node > Global.'));
 		so.ucisection = 'config';
 		so.datatype = 'uinteger';
 		so.placeholder = '200';
 		so.rmempty = false;
 
-		so = ss.taboption('interface', form.Value, 'tproxy_mark', _('Tproxy Fwmark'));
+		so = ss.taboption('interface', form.Value, 'tproxy_mark', _('Tproxy Fwmark/fwmask'));
 		so.ucisection = 'config';
 		so.placeholder = '201 or 0xc9/0xff';
 		so.rmempty = false;
 
-		so = ss.taboption('interface', form.Value, 'tun_mark', _('Tun Fwmark'));
+		so = ss.taboption('interface', form.Value, 'tun_mark', _('Tun Fwmark/fwmask'));
 		so.ucisection = 'config';
 		so.placeholder = '202 or 0xca/0xff';
 		so.rmempty = false;
@@ -794,6 +801,21 @@ return view.extend({
 		so = ss.taboption('access_control', form.Flag, 'proxy_router', _('Proxy routerself'));
 		so.default = so.enabled;
 
+		so = ss.taboption('access_control', form.Flag, 'top_upstream', _('As the TOP upstream of dnsmasq'),
+			_('As the TOP upstream of dnsmasq.'));
+		so.default = so.disabled;
+		so.validate = function(section_id, value) {
+			let desc = this.getUIElement(section_id).node.nextSibling;
+			value = this.formvalue(section_id);
+
+			if (value == 1)
+				desc.innerHTML = _('As the TOP upstream of dnsmasq.');
+			else
+				desc.innerHTML = _('dnsmasq selects upstream on its own. (may affect CDN accuracy)');
+
+			return true;
+		}
+
 		/* Routing control */
 		ss.tab('routing_control', _('Routing Control'));
 
@@ -804,7 +826,7 @@ return view.extend({
 			if (!res[0].match(/_udpport$/))
 				so.value.apply(so, res);
 		})
-		so.validate = L.bind(hm.validateCommonPort, so);
+		so.validate = hm.validateCommonPort;
 
 		so = ss.taboption('routing_control', hm.RichMultiValue, 'routing_udpport', _('Routing ports') + ' (UDP)',
 			_('Specify target ports to be proxied. Multiple ports must be separated by commas.'));
@@ -813,7 +835,7 @@ return view.extend({
 			if (!res[0].match(/_tcpport$/))
 				so.value.apply(so, res);
 		})
-		so.validate = L.bind(hm.validateCommonPort, so);
+		so.validate = hm.validateCommonPort;
 
 		so = ss.taboption('routing_control', form.ListValue, 'routing_mode', _('Routing mode'),
 			_('Routing mode of the traffic enters mihomo via firewall rules.'));
@@ -859,8 +881,8 @@ return view.extend({
 
 		so = ss.taboption('direct_list', hm.TextValue, 'direct_list.yaml', null);
 		so.rows = 20;
-		so.default = 'FQDN:\nIPCIDR:\nIPCIDR6:\n';
-		so.placeholder = "FQDN:\n- mask.icloud.com\n- mask-h2.icloud.com\n- mask.apple-dns.net\nIPCIDR:\n- '223.0.0.0/12'\nIPCIDR6:\n- '2400:3200::/32'\n";
+		so.default = 'DOMAIN:\nIPCIDR:\nIPCIDR6:\n';
+		so.placeholder = "DOMAIN:\n- mask.icloud.com\n- mask-h2.icloud.com\n- mask.apple-dns.net\nIPCIDR:\n- '223.0.0.0/12'\nIPCIDR6:\n- '2400:3200::/32'\n";
 		so.load = function(section_id) {
 			return L.resolveDefault(hm.readFile('resources', this.option), '');
 		}
@@ -877,8 +899,8 @@ return view.extend({
 
 		so = ss.taboption('proxy_list', hm.TextValue, 'proxy_list.yaml', null);
 		so.rows = 20;
-		so.default = 'FQDN:\nIPCIDR:\nIPCIDR6:\n';
-		so.placeholder = "FQDN:\n- www.google.com\nIPCIDR:\n- '91.105.192.0/23'\nIPCIDR6:\n- '2001:67c:4e8::/48'\n";
+		so.default = 'DOMAIN:\nIPCIDR:\nIPCIDR6:\n';
+		so.placeholder = "DOMAIN:\n- www.google.com\n- '.googlevideo.com'\n- google.com\nIPCIDR:\n- '91.105.192.0/23'\nIPCIDR6:\n- '2001:67c:4e8::/48'\n";
 		so.load = function(section_id) {
 			return L.resolveDefault(hm.readFile('resources', this.option), '');
 		}

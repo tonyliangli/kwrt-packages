@@ -77,7 +77,7 @@ local system_version = require "luci.model.cbi.gpsysupgrade.sysupgrade".get_syst
 		var ckeckDetailElm = document.getElementById(btn.id + '-detail');
 		var updateLogs = document.getElementById('updatelogs');
 
-		XHR.get('<%=url([[admin]], [[services]], [[gpsysupgrade]], [[sysversion_check]])%>', {
+		XHR.get('<%=url([[admin]], [[system]], [[gpsysupgrade]], [[sysversion_check]])%>', {
 			token: tokenStr,
 			model: ''
 		}, function(x,json) {
@@ -126,12 +126,11 @@ local system_version = require "luci.model.cbi.gpsysupgrade.sysupgrade".get_syst
 
 		addPageNotice_sysup();
 
-		var sysUpgradeUrl = '<%=url([[admin]], [[services]], [[gpsysupgrade]], [[sysversion_update]])%>';
+		var sysUpgradeUrl = '<%=url([[admin]], [[system]], [[gpsysupgrade]], [[sysversion_update]])%>';
 		// Download file
 		XHR.get(sysUpgradeUrl, {
 			token: tokenStr,
-			url: sysUpgradeInfo ? sysUpgradeInfo.url : '',
-			md5: sysUpgradeInfo ? sysUpgradeInfo.md5 : ''
+			url: sysUpgradeInfo ? sysUpgradeInfo.url : ''
 		}, function(x,json) {
 			if(json.code) {
 				removePageNotice_sysup();
@@ -212,7 +211,7 @@ overlay = boardinfo.release.distribution
 			
 </div>
 <p class="alert-message notice reboot-message" style="display:none">
-	<img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" style="vertical-align:middle" />
+	<img src="<%=resource%>/icons/loading.svg" alt="<%:Loading%>" style="vertical-align:middle" />
 	<span><%:Device is rebooting...%></span>
 </p>
 <script type="text/javascript">
@@ -236,7 +235,7 @@ overlay = boardinfo.release.distribution
 
 		img.onload = ok;
 		img.onerror = check;
-		img.src = '<%=resource%>/icons/loading.gif?' + Math.random();
+		img.src = '<%=resource%>/icons/loading.svg?' + Math.random();
 
 		if (tries++ >= 30) {
 			message.classList.remove('notice');

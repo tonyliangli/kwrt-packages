@@ -8,14 +8,13 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=trojan-plus
 PKG_VERSION:=10.0.3
-PKG_RELEASE:=3
+PKG_RELEASE:=7
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/peter-tank/trojan-plus.git
 PKG_SOURCE_DATE:=2020-09-06
 PKG_SOURCE_VERSION:=a6394cdd718669b0c7491493a78e61f6f0f899b3
 PKG_MIRROR_HASH:=skip
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.xz
 
 PKG_BUILD_PARALLEL:=1
 PKG_BUILD_DEPENDS:=openssl
@@ -26,6 +25,7 @@ PKG_MAINTAINER:=Trojan-Plus-Group
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/cmake.mk
+include ./boost-version.mk
 
 TARGET_CXXFLAGS += -Wall -Wextra
 TARGET_CXXFLAGS += $(FPIC)
@@ -59,7 +59,8 @@ define Package/trojan-plus
 	URL:=https://github.com/Trojan-Plus-Group/trojan-plus
 	DEPENDS:= \
 		+libpthread +libstdcpp +libopenssl \
-		+boost +boost-system +boost-program_options
+		+boost +boost-program_options \
+		$(if $(filter y,$(NEED_BOOST_SYSTEM)),,+boost-system)
 endef
 
 define Package/trojan-plus/install

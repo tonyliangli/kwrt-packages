@@ -12,5 +12,5 @@ start() {
 }
 
 stop() {
-  killall  cpulimit
+  kill -9 `pidof cpulimit | sed "s/$$//g"`
 }

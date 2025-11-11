@@ -6,15 +6,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dns2socks-rust
-PKG_VERSION:=0.2.0
-PKG_RELEASE:=2
+PKG_VERSION:=0.2.3
+PKG_RELEASE:=9
 
-PKG_SOURCE_PROTO:=git
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=https://github.com/tun2proxy/dns2socks.git
-PKG_SOURCE_DATE:=2025-03-19
-PKG_SOURCE_VERSION:=8ab4c4dbb1ad8cd2e0cc111a7d82f873f44ddb9f
-PKG_MIRROR_HASH:=skip
+PKG_SOURCE_URL:=https://codeload.github.com/tun2proxy/dns2socks/tar.gz/v$(PKG_VERSION)?
+PKG_HASH:=skip
+PKG_BUILD_DIR:=$(BUILD_DIR)/dns2socks-$(PKG_VERSION)
 
 PKG_MAINTAINER:=Zxlhhyccc <zxlhhyccc@gmail.com>
 PKG_LICENSE:=MIT

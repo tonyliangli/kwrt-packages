@@ -23,14 +23,22 @@ msgid ""
 "<abbr title=\"Light Emitting Diode\">LED</abbr> indicates the Internet status."
 msgstr "<abbr title=\"Светодиод\">LED</abbr> отображает статус Интернет."
 
-msgid "Action when connected"
-msgstr "Действие при подключении"
+msgid "<abbr title=\"Light Emitting Diode\">LED</abbr> mode"
+msgstr "Режим <abbr title=\"Светодиод\">LED</abbr>"
 
-msgid "Action when disconnected"
-msgstr "Действие при отключении"
+msgid ""
+"<abbr title=\"Light Emitting Diode\">LED</abbr> will display the link activity of this network device."
+msgstr ""
+"<abbr title=\"Светодиод\">LED</abbr> будет отображать активность линка этого сетевого устройства."
 
 msgid "Add instance"
 msgstr "Добавить экземпляр"
+
+msgid "After connection"
+msgstr "После подключения"
+
+msgid "After disconnection"
+msgstr "После отключения"
 
 msgid "Alive interval"
 msgstr "Интервал при подключении"
@@ -39,10 +47,13 @@ msgid "Alive period"
 msgstr "Период после подключения"
 
 msgid "An email will be sent when connected or disconnected from the Internet."
-msgstr "Сообщение будет отправлено при подключении или отключении от Интернет."
+msgstr "Сообщение будет отправлено на email при подключении или отключении от Интернет."
 
 msgid "An error has occurred"
 msgstr "Произошла ошибка"
+
+msgid "Attempt interval"
+msgstr "Интервал попыток"
 
 msgid "Attempts"
 msgstr "Попытки"
@@ -50,8 +61,17 @@ msgstr "Попытки"
 msgid "Big: 248 bytes"
 msgstr "Большой: 248 байт"
 
-msgid "Blink"
-msgstr "Мигание"
+msgid "Blinking (kernel: timer)"
+msgstr "Мигание (kernel: timer)"
+
+msgid "Bot API token is missing!"
+msgstr "Отсутствует API токен бота!"
+
+msgid "Bot token"
+msgstr "Токен бота"
+
+msgid "ID чата"
+msgstr ""
 
 msgid "Check type"
 msgstr "Тип проверки"
@@ -77,14 +97,23 @@ msgstr "Таймаут соединения"
 msgid "Contents have been saved."
 msgstr "Содержимое сохранено."
 
+msgid "Curl is not available..."
+msgstr "Curl недоступен..."
+
 msgid "Dead interval"
 msgstr "Интервал при отключении"
 
 msgid "Dead period"
 msgstr "Период после отключения"
 
+msgid "Debug"
+msgstr "Отладка"
+
 msgid "Default port value for TCP connections."
 msgstr "Стандартное значение порта для TCP-подключений."
+
+msgid "Description"
+msgstr "Описание"
 
 msgid "Device"
 msgstr "Устройство"
@@ -109,9 +138,6 @@ msgstr "Закрыть"
 
 msgid "DNS query type"
 msgstr "Тип DNS-запроса"
-
-msgid "DNS provider"
-msgstr "DNS провайдер"
 
 msgid "Edit"
 msgstr "Изменить"
@@ -140,14 +166,17 @@ msgstr "Email-адрес отправителя."
 msgid "Enable"
 msgstr "Включить"
 
-msgid "Enable logging"
-msgstr "Запись событий в лог"
-
 msgid "Enable public-ip-script"
 msgstr "Включить public-ip-script"
 
 msgid "Enabled"
 msgstr "Включен"
+
+msgid "Error"
+msgstr "Ошибка"
+
+msgid "Error!"
+msgstr "Ошибка!"
 
 msgid "Expecting:"
 msgstr "Ожидается:"
@@ -177,14 +206,14 @@ msgid "Hosts"
 msgstr "Хосты"
 
 msgid "Hosts polling interval when the Internet is down."
-msgstr "Интервал опроса хостов если Интернет не доступен."
+msgstr "Интервал опроса хостов если Интернет недоступен."
 
 msgid "Hosts polling interval when the Internet is up."
 msgstr "Интервал опроса хостов если Интернет доступен."
 
 msgid ""
-"Hosts to check Internet availability. Hosts are polled (in list order) until "
-"at least one of them responds."
+"Hosts for checking Internet availability. Hosts are polled (in list "
+"order) until at least one responds."
 msgstr ""
 "Хосты для проверки доступности Интернет. Хосты опрашиваются (в порядке "
 "списка) до тех пор, пока хотя бы один из них не ответит."
@@ -192,14 +221,29 @@ msgstr ""
 msgid "Huge: 1492 bytes"
 msgstr "Огромный: 1492 байта"
 
+msgid "ID of the Telegram chat to which messages will be sent."
+msgstr "ID чата Telegram в который будут отправлены сообщения."
+
 msgid "ICMP-echo request (ping)"
 msgstr "Запрос ICMP-echo (ping)"
 
 msgid "ICMP packet data size"
 msgstr "Размер данных ICMP-пакета"
 
+msgid "Incorrect bot token?"
+msgstr "Неправильный токен бота?"
+
+msgid "Info"
+msgstr "Информация"
+
+msgid "Instances"
+msgstr "Экземпляры"
+
 msgid "Interface"
 msgstr "Интерфейс"
+
+msgid "Interface timeout"
+msgstr "Таймаут интерфейса"
 
 msgid "Internet"
 msgstr "Интернет"
@@ -219,17 +263,41 @@ msgstr "Интервал между запросами IP адреса."
 msgid "Interval between IP address requests if the IP address is not defined."
 msgstr "Интервал между запросами IP адреса, если IP адрес не определён."
 
+msgid "Interval between modem restarts."
+msgstr "Интервал между перезапусками модема."
+
+msgid "Interval between network restarts."
+msgstr "Интервал между перезапусками сети."
+
+msgid "Interval between down-script runs."
+msgstr "Интервал между запусками down-script."
+
+msgid "Interval between up-script runs."
+msgstr "Интервал между запусками up-script."
+
+msgid "Invalid instance name..."
+msgstr "Недопустимое имя экземпляра..."
+
 msgid "Jumbo: 9000 bytes"
 msgstr "Гигантский: 9000 байт"
 
 msgid "LED control"
 msgstr "Управление LED"
 
+msgid "Link On"
+msgstr "Подключение"
+
 msgid "Loading"
 msgstr "Загрузка"
 
+msgid "Log event level."
+msgstr "Уровень событий лога."
+
+msgid "Logging"
+msgstr "Запись событий в лог"
+
 msgid "Mailsend is not available..."
-msgstr "Mailsend не доступен..."
+msgstr "Mailsend недоступен..."
 
 msgid "Main settings"
 msgstr "Основные настройки"
@@ -244,11 +312,22 @@ msgstr ""
 "Максимальное количество попыток перезапуска сети до появления доступа в "
 "Интренет."
 
+msgid ""
+"Maximum number of up-script run attempts when connected to the Internet."
+msgstr ""
+"Максимальное количество попыток запуска up-script при подключении к Интренет."
+
+msgid ""
+"Maximum number of down-script run attempts before Internet access is available."
+msgstr ""
+"Максимальное количество попыток запуска down-script до появления доступа в "
+"Интренет."
+
 msgid "Maximum timeout for waiting for a response from the host."
 msgstr "Максимальный таймаут ожидания ответа от хоста."
 
 msgid "ModemManager is not available..."
-msgstr "ModemManager не доступен..."
+msgstr "ModemManager недоступен..."
 
 msgid "Modem will be restarted when the Internet is disconnected."
 msgstr "Модем будет перезапущен при отключении Интернет."
@@ -267,6 +346,9 @@ msgstr ""
 "Сетевое устройство для доступа в Интернет. Если не указано, используется "
 "устройство по умолчанию."
 
+msgid "Network device activity (kernel: netdev)"
+msgstr "Активность сетевого устройства (kernel: netdev)"
+
 msgid ""
 "Network device or interface to restart. If not specified, then the network service is restarted."
 msgstr ""
@@ -282,8 +364,14 @@ msgstr "Следующий запуск"
 msgid "No <abbr title=\"Light Emitting Diode\">LED</abbr>s available..."
 msgstr "Нет доступных <abbr title=\"Светодиод\">LED</abbr>..."
 
+msgid "No messages available. Write something to the bot and try again."
+msgstr "Нет доступных сообщений. Напишите что-нибудь боту и попробуйте ещё раз."
+
 msgid "Not scheduled"
 msgstr "Не запланирован"
+
+msgid "Notice"
+msgstr "Сообщение"
 
 msgid "Number of attempts to request an IP address."
 msgstr "Количество попыток запроса IP адреса"
@@ -291,8 +379,23 @@ msgstr "Количество попыток запроса IP адреса"
 msgid "Off"
 msgstr "Выключить"
 
+msgid "Off-state delay"
+msgstr "Задержка выключенного состояния"
+
+msgid "Off-state delay for blinking option."
+msgstr "Задержка выключенного состояния для опции мигания."
+
 msgid "On"
 msgstr "Включить"
+
+msgid "On startup"
+msgstr "При запуске"
+
+msgid "On-state delay"
+msgstr "Задержка включённого состояния"
+
+msgid "On-state delay for blinking option."
+msgstr "Задержка включённого состояния для опции мигания."
 
 msgid "One of the following:"
 msgstr "Одно из следующих значений:"
@@ -304,18 +407,18 @@ msgid "Password for SMTP authentication."
 msgstr "Пароль для SMTP-аутентификации."
 
 msgid ""
-"Period of time after connecting to Internet before \"up-script\" runs."
+"Period of time after connecting to Internet before up-script runs."
 msgstr ""
-"Период времени после подключения к Интернет перед запуском \"up-script\"."
+"Период времени после подключения к Интернет перед запуском up-script."
 
 msgid ""
 "Period of time after connecting to the Internet before sending a message."
 msgstr "Период времени после подключения к Интернет перед отправкой сообщения."
 
 msgid ""
-"Period of time after disconnecting from Internet before \"down-script\" runs."
+"Period of time after disconnecting from Internet before down-script runs."
 msgstr ""
-"Период времени после отключения от Интернет перед запуском \"down-script\"."
+"Период времени после отключения от Интернет перед запуском down-script."
 
 msgid ""
 "Period of time after disconnecting from Internet before sending a message."
@@ -338,6 +441,18 @@ msgstr "Регулярный скрипт"
 msgid "Polling interval"
 msgstr "Интервал опроса"
 
+msgid "Provider"
+msgstr "Провайдер"
+
+msgid "Proxy"
+msgstr "Прокси"
+
+msgid "Proxy host"
+msgstr "Хост прокси"
+
+msgid "Proxy port"
+msgstr "Порт прокси"
+
 msgid "Public IP"
 msgstr "Публичный IP"
 
@@ -347,8 +462,17 @@ msgstr "Публичный IP адрес"
 msgid "Reboot device"
 msgstr "Перезагрузка устройства"
 
+msgid "Reboot device if the Internet is disconnected at service startup."
+msgstr "Перезагрузка устройства если Интренет отключен при запуске службы."
+
+msgid "Receive"
+msgstr "Приём"
+
 msgid "Recipient"
 msgstr "Получатель"
+
+msgid "Request chat ID from bot API"
+msgstr "Запросить ID чата через API бота"
 
 msgid "Restart"
 msgstr "Перезапуск"
@@ -359,14 +483,20 @@ msgstr "Попытки перезапуска"
 msgid "Restart modem"
 msgstr "Перезапуск модема"
 
+msgid "Restart modem if the Internet is disconnected at service startup."
+msgstr "Перезапуск модема если Интренет отключен при запуске службы."
+
 msgid "Restart network"
 msgstr "Перезапуск сети"
+
+msgid "Restart network if the Internet is disconnected at service startup."
+msgstr "Перезапуск сети если Интренет отключен при запуске службы."
 
 msgid "Restart service"
 msgstr "Перезапуск службы"
 
-msgid "Restart timeout"
-msgstr "Таймаут перезапуска"
+msgid "Device timeout"
+msgstr "Таймаут устройства"
 
 msgid "Run interval"
 msgstr "Интервал запуска"
@@ -376,6 +506,12 @@ msgstr "Выполнять если статус Интернет"
 
 msgid "Run service at startup"
 msgstr "Запуск службы при старте"
+
+msgid "Run down-script if the Internet is disconnected at service startup."
+msgstr "Выполнить down-script если Интренет отключен при запуске службы."
+
+msgid "Run up-script if the Internet is connected at service startup."
+msgstr "Выполнить up-script если Интренет подключен при запуске службы."
 
 msgid "Running"
 msgstr "Выполняется"
@@ -395,6 +531,9 @@ msgstr "Сохранить"
 msgid "Security"
 msgstr "Безопасность"
 
+msgid "Send message on service startup."
+msgstr "Отправлять сообщение при запуске службы."
+
 msgid "Sender"
 msgstr "Отправитель"
 
@@ -410,14 +549,11 @@ msgstr "Не удалось выполнить действие службы \"%
 msgid "Service configuration"
 msgstr "Конфигурация службы"
 
-msgid "Service for determining the public IP address through DNS."
-msgstr "Сервис для определения публичного IP адреса через DNS."
+msgid "Service for determining the public IP address."
+msgstr "Сервис для определения публичного IP адреса."
 
 msgid "Service: detector always runs as a system service."
 msgstr "Служба: детектор работает постоянно, как системная служба."
-
-msgid "Service instances"
-msgstr "Экземпляры службы"
 
 msgid "Set the modem to be allowed to use any band."
 msgstr "Разрешить модему использование любой частоты."
@@ -455,14 +591,32 @@ msgstr "TCP-порт"
 msgid "TCP port connection"
 msgstr "Подключение к TCP-порту"
 
+msgid "Telegram bot API token."
+msgstr "API токен Telegram бота."
+
+msgid "Telegram message will be sent when connected or disconnected from the Internet."
+msgstr "Сообщение в Telegram будет отправлено при подключении или отключении от Интернет."
+
 msgid "The type of record requested in the DNS query (if the service supports it)."
 msgstr "Тип записи запрашиваемой в DNS-запросе (если сервис поддерживает)."
 
 msgid "TLS: use STARTTLS if the server supports it."
 msgstr "TLS: использовать STARTTLS если сервер поддерживает."
 
-msgid "Timeout between stopping and starting a network device."
-msgstr "Таймаут между остановкой и запуском сетевого устройства."
+msgid "Timeout between stopping and starting a network device when restarting."
+msgstr "Таймаут между остановкой и запуском сетевого устройства при перезапуске."
+
+msgid "Timeout between stopping and starting a ModemManger interface when restarting."
+msgstr "Таймаут между остановкой и запуском интерфейса ModemManger при перезапуске."
+
+msgid "To support HTTP services, you need to install curl."
+msgstr "Для поддержки HTTP сервисов необходимо установить curl."
+
+msgid "To support URL checking, you need to install curl."
+msgstr "Для поддержки проверки URL необходимо установить curl."
+
+msgid "Transmit"
+msgstr "Передача"
 
 msgid "Type a time string"
 msgstr "Введите строку времени"
@@ -479,6 +633,16 @@ msgstr "Неопределён"
 msgid "Unlock modem bands"
 msgstr "Освободить частоты модема"
 
+msgid "URL test (HTTP)"
+msgstr "Тест URL (HTTP)"
+
+msgid ""
+"URLs for checking Internet availability. URLs are polled (in list "
+"order) until at least one returns HTTP status code 200."
+msgstr ""
+"URL для проверки доступности Интернет. URL опрашиваются (в порядке "
+"списка) до тех пор, пока хотя бы один из них не вернёт код статуса HTTP 200."
+
 msgid "User"
 msgstr "Пользователь"
 
@@ -493,6 +657,9 @@ msgstr ""
 "Ожидание завершения перезагрузки перед выполнением принудительной "
 "перезагрузки."
 
+msgid "Warning"
+msgstr "Внимание"
+
 msgid "Web UI only (UI detector)"
 msgstr "Только web-интерфейс (UI детектор)"
 
@@ -504,11 +671,16 @@ msgstr ""
 msgid "When email will be sent"
 msgstr "Когда будет отправлено сообщение"
 
+msgid "When message will be sent"
+msgstr "Когда будет отправлено сообщение"
+
 msgid "Windows: 32 bytes"
 msgstr "Windows: 32 байта"
 
-msgid "Write messages to the system log."
-msgstr "Записывать сообщения в системный журнал."
+msgid ""
+"You need to register a new %sTelegram bot%s. Then get the bot's API token and paste it into the <code>Bot token</code> field. After that, open a chat with the bot, write something (in the Telegram app) and you will be able to get the chat ID using the <code>ID</code> button."
+msgstr ""
+"Необходимо зарегистрировать новый %sTelegram бот%s. Затем получить API токен бота и вставить его в поле <code>Токен бота</code>. После этого, откройте чат с ботом, напишите что-нибудь (в приложении Telegram) и можно будет получить ID чата с помощью кнопки <code>ID</code>."
 
 msgid "after connection"
 msgstr "после подключения"
@@ -537,6 +709,9 @@ msgstr "down-script"
 msgid "hour"
 msgstr "час"
 
+msgid "infinitely"
+msgstr "бесконечно"
+
 msgid "hours"
 msgstr "часы"
 
@@ -545,6 +720,9 @@ msgstr "мин"
 
 msgid "minutes"
 msgstr "минуты"
+
+msgid "msec"
+msgstr "мсек"
 
 msgid "sec"
 msgstr "сек"

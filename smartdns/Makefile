@@ -5,8 +5,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=smartdns
-PKG_VERSION:=46.1
-PKG_RELEASE:=9
+PKG_VERSION:=47.1
+PKG_RELEASE:=16
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/pymumu/smartdns/tar.gz/Release$(PKG_VERSION)?
@@ -17,25 +17,47 @@ PKG_MAINTAINER:=Nick Peng <pymumu@gmail.com>
 PKG_LICENSE:=GPL-3.0-or-later
 PKG_LICENSE_FILES:=LICENSE
 
+PKG_CONFIG_DEPENDS:=CONFIG_PACKAGE_smartdns-ui
+PKG_BUILD_DEPENDS:=PACKAGE_smartdns-ui:node/host PACKAGE_smartdns-ui:rust-bindgen/host
 PKG_BUILD_PARALLEL:=1
 
+RUST_PKG_FEATURES:=build-release
+RUST_PKG_LOCKED:=0
+
 include $(INCLUDE_DIR)/package.mk
+include $(TOPDIR)/feeds/packages/lang/rust/rust-package.mk
 
 MAKE_PATH:=src
 MAKE_VARS+= VER=$(PKG_VERSION)
 
-define Package/smartdns
+define Package/smartdns/Default
   SECTION:=net
   CATEGORY:=Network
-  TITLE:=smartdns server
-  DEPENDS:=+libpthread +libopenssl
+  SUBMENU:=IP Addresses and Names
+  TITLE:=smartdns
   URL:=https://www.github.com/pymumu/smartdns/
+endef
+
+define Package/smartdns
+  $(call Package/smartdns/Default)
+  TITLE+= server
+  DEPENDS:=+i386:libatomic +libopenssl
 endef
 
 define Package/smartdns/description
 SmartDNS is a local DNS server which accepts DNS query requests from local network clients,
 gets DNS query results from multiple upstream DNS servers concurrently, and returns the fastest IP to clients.
 Unlike dnsmasq's all-servers, smartdns returns the fastest IP, and encrypt DNS queries with DoT or DoH.
+endef
+
+define Package/smartdns-ui
+  $(call Package/smartdns/Default)
+  TITLE+= dashboard
+  DEPENDS:=+smartdns $(RUST_ARCH_DEPENDS) @!(TARGET_x86_geode||TARGET_x86_legacy)
+endef
+
+define Package/smartdns-ui/description
+A dashboard ui for smartdns server.
 endef
 
 define Package/smartdns/conffiles
@@ -45,6 +67,52 @@ define Package/smartdns/conffiles
 /etc/smartdns/custom.conf
 /etc/smartdns/domain-block.list
 /etc/smartdns/domain-forwarding.list
+endef
+
+define Download/smartdns-webui
+  PROTO:=git
+  URL:=https://github.com/pymumu/smartdns-webui.git
+  SOURCE_DATE:=2025-10-25
+  SOURCE_VERSION:=a673732fd541bbd33e3677e6315cf8a9ce3bf248
+  MIRROR_HASH:=2dc08e54f36ba9427d628979494b44fc6963a51cbf3fb62b197f65c3e33a6095
+  SUBDIR:=smartdns-webui-$$$$(subst -,.,$$$$(SOURCE_DATE))~$$$$(call version_abbrev,$$$$(SOURCE_VERSION))
+  FILE:=$$(SUBDIR).tar.zst
+endef
+
+define Build/Prepare
+	$(call Build/Prepare/Default)
+
+ifneq ($(CONFIG_PACKAGE_smartdns-ui),)
+	$(eval $(call Download,smartdns-webui))
+	$(eval $(Download/smartdns-webui))
+	mkdir -p $(PKG_BUILD_DIR)/smartdns-webui
+	zstdcat $(DL_DIR)/$(FILE) | tar -C $(PKG_BUILD_DIR)/smartdns-webui $(TAR_OPTIONS) --strip-components=1
+endif
+endef
+
+define Build/Compile
+	$(call Build/Compile/Default)
+
+ifneq ($(CONFIG_PACKAGE_smartdns-ui),)
+	( \
+		pushd $(PKG_BUILD_DIR) ; \
+		pushd smartdns-webui ; \
+		npm install ; \
+		npm run build ; \
+		popd ; \
+		pushd plugin/smartdns-ui ; \
+		$(CARGO_PKG_CONFIG_VARS) \
+		MAKEFLAGS="$(PKG_JOBS)" \
+		TARGET_CFLAGS="$(filter-out -O%,$(TARGET_CFLAGS)) $(RUSTC_CFLAGS)" \
+		BINDGEN_EXTRA_CLANG_ARGS="--sysroot=$(TOOLCHAIN_ROOT_DIR)" \
+		cargo build -v --profile $(CARGO_PKG_PROFILE) \
+		$(if $(strip $(RUST_PKG_FEATURES)),--features "$(strip $(RUST_PKG_FEATURES))") \
+		$(if $(filter --jobserver%,$(PKG_JOBS)),,-j1) \
+		$(CARGO_PKG_ARGS) ; \
+		popd ; \
+		popd ; \
+	)
+endif
 endef
 
 define Package/smartdns/install
@@ -61,4 +129,12 @@ define Package/smartdns/install
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/package/openwrt/files/etc/config/smartdns $(1)/etc/config/smartdns
 endef
 
+define Package/smartdns-ui/install
+	$(INSTALL_DIR) $(1)/usr/lib
+	$(INSTALL_DIR) $(1)/usr/share/smartdns
+	$(CP) $(PKG_BUILD_DIR)/plugin/smartdns-ui/target/$(RUSTC_TARGET_ARCH)/$(CARGO_PKG_PROFILE)/libsmartdns_ui.so $(1)/usr/lib/smartdns_ui.so
+	$(CP) $(PKG_BUILD_DIR)/smartdns-webui/out $(1)/usr/share/smartdns/wwwroot
+endef
+
 $(eval $(call BuildPackage,smartdns))
+$(eval $(call BuildPackage,smartdns-ui))

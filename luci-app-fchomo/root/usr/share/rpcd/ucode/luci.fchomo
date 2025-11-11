@@ -19,7 +19,7 @@ function wGET(url, header, filepath) {
 	let ua = 'Wget/1.21 (FullCombo Shark!)';
 
 	if (header) {
-		header = json(trim(header) || {});
+		header = json(trim(header) || '{}');
 
 		header = join(' ', filter(map(keys(header), (k) => {
 			let v = join(', ', type(header[k]) === 'array' ? filter(header[k], v => v) : []);
@@ -43,13 +43,13 @@ const methods = {
 	mihomo_generator: {
 		args: { type: 'type', params: 'params' },
 		call: function(req) {
-			if (!(req.args?.type in ['uuid', 'reality-keypair', 'wg-keypair', 'ech-keypair']))
+			if (!(req.args?.type in ['uuid', 'reality-keypair', 'wg-keypair', 'vless-x25519', 'vless-mlkem768', 'ech-keypair']))
 				return { result: false, error: 'illegal type' };
 
 			const type = req.args?.type;
 			let result = {};
 
-			const fd = popen('/usr/bin/mihomo generate ' + type + ` ${req.args?.params || ''}`);
+			const fd = popen('/usr/bin/mihomo generate ' + type + ` ${req.args?.params ?? ''}`);
 			if (fd) {
 				for (let line = fd.read('line'); length(line); line = fd.read('line')) {
 					if (type === 'uuid')
@@ -61,6 +61,22 @@ const methods = {
 						let pub = match(trim(line), /PublicKey: (.*)/);
 						if (pub)
 							result.public_key = pub[1];
+					} else if (type in ['vless-x25519', 'vless-mlkem768']) {
+						let priv = match(trim(line), /PrivateKey: (.*)/);
+						if (priv)
+							result.private_key = priv[1];
+						let pass = match(trim(line), /Password: (.*)/);
+						if (pass)
+							result.password = pass[1];
+						let seed = match(trim(line), /Seed: (.*)/);
+						if (seed)
+							result.seed = seed[1];
+						let client = match(trim(line), /Client: (.*)/);
+						if (client)
+							result.client = client[1];
+						let hash = match(trim(line), /Hash32: (.*)/);
+						if (hash)
+							result.hash32 = hash[1];
 					} else if (type in ['ech-keypair']) {
 						result.ech_key = result.ech_key ? result.ech_key + '\n' + trim(line) : '';
 						let cfg = match(trim(line), /Config: (.*)/);
@@ -313,7 +329,7 @@ const methods = {
 		}
 	},
 
-	// thanks to homeproxy
+	/* thanks to homeproxy */
 	certificate_write: {
 		args: { filename: 'filename' },
 		call: function(req) {
@@ -369,9 +385,11 @@ const methods = {
 			switch (filename) {
 			case 'client_ca':
 			case 'server_publickey':
+			case 'client_publickey':
 				return writeCertificate(filename, false);
 				break;
 			case 'server_privatekey':
+			case 'client_privatekey':
 				return writeCertificate(filename, true);
 				break;
 			default:

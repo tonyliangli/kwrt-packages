@@ -52,8 +52,8 @@ function getManufacturers()
 	end
 
 	-- 获取支持的模组
-	local support_modem=getSupportModems("pcie")
-	-- PCIE
+	local support_modem=getSupportModems("pci")
+	-- PCI
 	for modem in pairs(support_modem) do
 
 		local manufacturer=support_modem[modem]["manufacturer"]
@@ -99,11 +99,7 @@ function getMobileNetwork()
 
 	--遍历所有网络接口
 	for network in string.gmatch(networks, "%S+") do
-
-		-- 只处理最上级的网络设备
-		-- local count=$(echo "${network_path}" | grep -o "/net" | wc -l)
-		-- [ "$count" -ge "2" ] && return
-	
+		
 		-- 获取网络设备路径
 		local command="readlink -f /sys/class/net/"..network
 		local network_path=shell(command)
@@ -114,16 +110,28 @@ function getMobileNetwork()
 			flag="1"
 		end
 
+		-- 只处理最上级的网络设备（wwan0.1，rmnet_mhi0.1）
+		-- local count=0
+		-- for _ in network_path:gmatch("/net") do
+		-- 	count = count + 1
+		-- end
+		-- if count > 1 then
+		-- 	flag="1"
+		-- end
+		if network:find("%.") then
+			flag="1"
+		end
+
 		if flag=="0" then
 			if network:find("usb") or network:find("wwan") or network:find("eth") then
 				--设置USB移动网络
 				mobile_network:value(network)
 			elseif network:find("mhi_hwip") or network:find("rmnet_mhi") then
-				--设置PCIE移动网络
+				--设置PCI移动网络
 				mobile_network:value(network)
 			end
 		end
-
+		
 	end
 end
 

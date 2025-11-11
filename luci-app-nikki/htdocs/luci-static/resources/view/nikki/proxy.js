@@ -96,12 +96,16 @@ return view.extend({
             so.value(cgroup);
         };
 
+        so = o.subsection.option(form.Flag, 'dns', _('DNS'));
+        so.rmempty = false;
+
         so = o.subsection.option(form.Flag, 'proxy', _('Proxy'));
         so.rmempty = false;
 
         s.tab('lan', _('LAN Proxy'));
 
         o = s.taboption('lan', form.Flag, 'lan_proxy', _('Enable'));
+        o.rmempty = false;
 
         o = s.taboption('lan', form.DynamicList, 'lan_inbound_interface', _('Inbound Interface'));
         o.retain = true;
@@ -128,6 +132,7 @@ return view.extend({
         so.rmempty = false;
 
         so = o.subsection.option(form.DynamicList, 'ip', 'IP');
+        so.datatype = 'ip4addr';
 
         for (const mac in hosts) {
             const host = hosts[mac];
@@ -138,6 +143,7 @@ return view.extend({
         };
 
         so = o.subsection.option(form.DynamicList, 'ip6', 'IP6');
+        so.datatype = 'ip6addr';
 
         for (const mac in hosts) {
             const host = hosts[mac];
@@ -148,6 +154,7 @@ return view.extend({
         };
 
         so = o.subsection.option(form.DynamicList, 'mac', 'MAC');
+        so.datatype = 'macaddr';
 
         for (const mac in hosts) {
             const host = hosts[mac];
@@ -155,12 +162,18 @@ return view.extend({
             so.value(mac, hint ? '%s (%s)'.format(mac, hint) : mac);
         };
 
+        so = o.subsection.option(form.Flag, 'dns', _('DNS'));
+        so.rmempty = false;
+
         so = o.subsection.option(form.Flag, 'proxy', _('Proxy'));
         so.rmempty = false;
 
         s.tab('bypass', _('Bypass'));
 
         o = s.taboption('bypass', form.Flag, 'bypass_china_mainland_ip', _('Bypass China Mainland IP'));
+        o.rmempty = false;
+
+        o = s.taboption('bypass', form.Flag, 'bypass_china_mainland_ip6', _('Bypass China Mainland IP6'));
         o.rmempty = false;
 
         o = s.taboption('bypass', form.Value, 'proxy_tcp_dport', _('Destination TCP Port to Proxy'));

@@ -7,10 +7,10 @@
 include $(TOPDIR)/rules.mk
 
 PKG_VERSION:=1.2.16
-PKG_RELEASE:=21
+PKG_RELEASE:=25
 
 LUCI_TITLE:=LuCI support for vnt
-LUCI_DEPENDS:=+kmod-tun
+LUCI_DEPENDS:=+kmod-tun +luci-compat
 LUCI_PKGARCH:=all
 
 PKG_NAME:=luci-app-vnt

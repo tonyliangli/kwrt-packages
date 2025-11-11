@@ -9,8 +9,9 @@
 'require rpc';
 'require uci';
 'require view';
+'require tools.widgets as widgets';
 
-var callServiceList = rpc.declare({
+const callServiceList = rpc.declare({
 	object: 'service',
 	method: 'list',
 	params: ['name'],
@@ -18,8 +19,8 @@ var callServiceList = rpc.declare({
 });
 
 function getServiceStatus() {
-	return L.resolveDefault(callServiceList('zerotier'), {}).then(function (res) {
-		var isRunning = false;
+	return L.resolveDefault(callServiceList('zerotier'), {}).then(function(res) {
+		let isRunning = false;
 		try {
 			isRunning = res['zerotier']['instances']['instance1']['running'];
 		} catch (e) { }
@@ -28,8 +29,8 @@ function getServiceStatus() {
 }
 
 function renderStatus(isRunning) {
-	var spanTemp = '<em><span style="color:%s"><strong>%s %s</strong></span></em>';
-	var renderHTML;
+	let spanTemp = '<em><span style="color:%s"><strong>%s %s</strong></span></em>';
+	let renderHTML;
 	if (isRunning)
 		renderHTML = String.format(spanTemp, 'green', _('ZeroTier'), _('RUNNING'));
 	else
@@ -47,16 +48,16 @@ return view.extend({
 
 		s = m.section(form.TypedSection);
 		s.anonymous = true;
-		s.render = function () {
-			poll.add(function () {
-				return L.resolveDefault(getServiceStatus()).then(function (res) {
+		s.render = function() {
+			poll.add(function() {
+				return L.resolveDefault(getServiceStatus()).then(function(res) {
 					let view = document.getElementById('service_status');
 					view.innerHTML = renderStatus(res);
 				});
 			});
 
 			return E('div', { class: 'cbi-section', id: 'status_bar' }, [
-					E('p', { id: 'service_status' }, _('Collecting data…'))
+				E('p', { id: 'service_status' }, _('Collecting data…'))
 			]);
 		}
 
@@ -90,7 +91,7 @@ return view.extend({
 			_('Create or manage your ZeroTier network, and auth clients who could access.'));
 		o.inputtitle = _('Open website');
 		o.inputstyle = 'apply';
-		o.onclick = function () {
+		o.onclick = function() {
 			window.open("https://my.zerotier.com/network", '_blank');
 		}
 
@@ -107,7 +108,6 @@ return view.extend({
 		o = s.option(form.Value, 'id', _('Network ID'));
 		o.rmempty = false;
 		o.width = '20%';
-		o.editable = true;
 
 		o = s.option(form.Flag, 'allow_managed', _('Allow managed IP/route'),
 			_('Allow ZeroTier to set IP addresses and routes (local/private ranges only).'));
@@ -134,9 +134,23 @@ return view.extend({
 			_('Allow forward traffic from/to the ZeroTier network.'));
 		o.editable = true;
 
+		o = s.option(widgets.DeviceSelect, 'fw_forward_ifaces', _('Forward interfaces'),
+			_('Leave empty for all.'));
+		o.multiple = true;
+		o.noaliases = true;
+		o.depends('fw_allow_forward', '1');
+		o.modalonly = true;
+
 		o = s.option(form.Flag, 'fw_allow_masq', _('Masquerading'),
 			_('Enable network address and port translation (NAT) for outbound traffic for this network.'));
 		o.editable = true;
+
+		o = s.option(widgets.DeviceSelect, 'fw_masq_ifaces', _('Masquerade interfaces'),
+			_('Leave empty for all.'));
+		o.multiple = true;
+		o.noaliases = true;
+		o.depends('fw_allow_masq', '1');
+		o.modalonly = true;
 
 		return m.render();
 	}

@@ -1,15 +1,15 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2023-04-23 07:03+0000\n"
-"Last-Translator: olimpiumarius <oliver_magnum44@yahoo.com>\n"
+"PO-Revision-Date: 2025-11-03 02:02+0000\n"
+"Last-Translator: CRISTIAN ANDREI <cristianvdr@gmail.com>\n"
 "Language-Team: Romanian <https://hosted.weblate.org/projects/openwrt/"
 "luciapplicationsaria2/ro/>\n"
 "Language: ro\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
-"20)) ? 1 : 2;\n"
-"X-Generator: Weblate 4.18-dev\n"
+"Plural-Forms: nplurals=3; plural=n==1 ? 0 : "
+"(n==0 || (n%100 > 0 && n%100 < 20)) ? 1 : 2;\n"
+"X-Generator: Weblate 5.14.1-dev\n"
 
 #: applications/luci-app-aria2/htdocs/luci-static/resources/view/aria2/config.js:433
 msgid "<abbr title=\"Local Peer Discovery\">LPD</abbr> enabled"
@@ -181,7 +181,7 @@ msgstr "Activați proxy"
 
 #: applications/luci-app-aria2/htdocs/luci-static/resources/view/aria2/config.js:206
 msgid "Enabled"
-msgstr "activat"
+msgstr "Activat"
 
 #: applications/luci-app-aria2/htdocs/luci-static/resources/view/aria2/config.js:234
 msgid "Error"
@@ -202,7 +202,7 @@ msgstr "Alocarea fișierelor"
 #: applications/luci-app-aria2/htdocs/luci-static/resources/view/aria2/files.js:45
 #: applications/luci-app-aria2/root/usr/share/luci/menu.d/luci-app-aria2.json:24
 msgid "Files"
-msgstr "Fișiere"
+msgstr "Fişiere"
 
 #: applications/luci-app-aria2/htdocs/luci-static/resources/view/aria2/config.js:485
 msgid "Follow torrent"
@@ -387,11 +387,11 @@ msgstr "Nu există date de jurnal."
 
 #: applications/luci-app-aria2/htdocs/luci-static/resources/view/aria2/config.js:591
 msgid "None"
-msgstr "Nici unul"
+msgstr "Niciuna"
 
 #: applications/luci-app-aria2/htdocs/luci-static/resources/view/aria2/config.js:232
 msgid "Notice"
-msgstr "Aviz"
+msgstr "Remarcă"
 
 #: applications/luci-app-aria2/htdocs/luci-static/resources/view/aria2/config.js:242
 msgid "Pause"
@@ -876,7 +876,7 @@ msgstr ""
 
 #: applications/luci-app-aria2/htdocs/luci-static/resources/view/aria2/config.js:233
 msgid "Warn"
-msgstr "Avertizare"
+msgstr "Atenție"
 
 #: applications/luci-app-aria2/htdocs/luci-static/resources/view/aria2/config.js:381
 #: applications/luci-app-aria2/htdocs/luci-static/resources/view/aria2/config.js:493
@@ -894,7 +894,7 @@ msgstr "falloc"
 
 #: applications/luci-app-aria2/htdocs/luci-static/resources/view/aria2/config.js:592
 msgid "prealloc"
-msgstr "prealloc"
+msgstr "prealocare"
 
 #: applications/luci-app-aria2/htdocs/luci-static/resources/view/aria2/config.js:593
 msgid "trunc"

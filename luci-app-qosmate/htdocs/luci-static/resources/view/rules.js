@@ -5,6 +5,7 @@
 'require form';
 'require rpc';
 'require fs';
+'require poll';
 'require tools.widgets as widgets';
 
 var callInitAction = rpc.declare({
@@ -14,7 +15,286 @@ var callInitAction = rpc.declare({
     expect: { result: false }
 });
 
+var callRuleCounters = rpc.declare({
+    object: 'luci.qosmate_stats',
+    method: 'getRuleCounters',
+    expect: { rule_counters: [] }
+});
+
+// IPv6 suffix matching validation helpers
+function isIPv6SuffixFormat(value) {
+    // Format: ::suffix/::mask - allow empty suffix/mask with * instead of +
+    return /^::([0-9a-fA-F:]*)\/::([0-9a-fA-F:]*)$/.test(value);
+}
+
+function validateIPv6Part(part) {
+    // Special case: empty part is valid (for ::/::mask)
+    if (part === '') return true;
+    
+    // Check for multiple consecutive colons (:: can only appear once)
+    if (/:{3,}/.test(part)) return false;
+    if (/[^0-9a-fA-F:]/.test(part)) return false; // Only hex and colons allowed
+    
+    // Check if :: appears more than once
+    var doubleColonCount = (part.match(/::/g) || []).length;
+    if (doubleColonCount > 1) return false;
+    
+    // For suffix matching, we already have :: at the start, so no more :: allowed
+    if (doubleColonCount > 0) return false;
+    
+    // Split by colons and check each segment
+    var segments = part.split(':');
+    
+    // Can't have more than 8 segments (for a full IPv6) 
+    if (segments.length > 8) return false;
+    
+    for (var i = 0; i < segments.length; i++) {
+        var seg = segments[i];
+        // Each segment must be 0-4 hex digits
+        if (!/^[0-9a-fA-F]{0,4}$/.test(seg)) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function parseIPv6Suffix(value) {
+    const match = value.match(/^::([0-9a-fA-F:]*)\/::([0-9a-fA-F:]*)$/);
+    if (!match) return null;
+    
+    // Validate both parts
+    if (!validateIPv6Part(match[1]) || !validateIPv6Part(match[2])) {
+        return null;
+    }
+    
+    return {
+        suffix: match[1],
+        mask: match[2],
+        isSuffixMatch: true
+    };
+}
+
+// Common IP validation function for src_ip and dest_ip fields
+function validateIPField(section_id, value) {
+    if (!value || value.length === 0) {
+        return true;
+    }
+    
+    var values = Array.isArray(value) ? value : value.split(/\s+/);
+    var ipCidrRegex = /^(?:(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?:\.(?:25[0-5]|2[0-4]\d|[01]?\d\d?)){3})(?:\/(?:[0-9]|[1-2]\d|3[0-2]))?|(?:(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}|(?:[A-Fa-f0-9]{1,4}:){1,7}:|(?:[A-Fa-f0-9]{1,4}:){1,6}:[A-Fa-f0-9]{1,4}|(?:[A-Fa-f0-9]{1,4}:){1,5}(?::[A-Fa-f0-9]{1,4}){1,2}|(?:[A-Fa-f0-9]{1,4}:){1,4}(?::[A-Fa-f0-9]{1,4}){1,3}|(?:[A-Fa-f0-9]{1,4}:){1,3}(?::[A-Fa-f0-9]{1,4}){1,4}|(?:[A-Fa-f0-9]{1,4}:){1,2}(?::[A-Fa-f0-9]{1,4}){1,5}|[A-Fa-f0-9]{1,4}:(?:(?::[A-Fa-f0-9]{1,4}){1,6})|:(?:(?::[A-Fa-f0-9]{1,4}){1,7}|:))(?:\/(?:[0-9]|[1-9]\d|1[0-1]\d|12[0-8]))?)$/;
+    
+    // Check for mixed IPv4/IPv6 within this field
+    var hasIPv4 = false;
+    var hasIPv6 = false;
+    
+    for (var i = 0; i < values.length; i++) {
+        var v = values[i].replace(/^!(?!=)/, '!=');
+        
+        // Check for set reference
+        if (v.startsWith('@') || v.startsWith('!=@')) {
+            var setName = v.replace(/^(!=)?@/, '');
+            if (!/^[a-zA-Z0-9_]+$/.test(setName)) {
+                return _('Invalid set name format. Must start with @ followed by letters, numbers, or underscore');
+            }
+            continue; // Don't check IP version for sets
+        } 
+        
+        // Strip != prefix for validation
+        var isNegated = v.startsWith('!=');
+        var valueToValidate = isNegated ? v.substring(2) : v;
+        
+        // Check for IPv6 suffix format
+        if (isIPv6SuffixFormat(valueToValidate)) {
+            var suffixData = parseIPv6Suffix(valueToValidate);
+            if (!suffixData) {
+                return _('Invalid IPv6 suffix format. Use ::suffix/::mask with valid IPv6 segments (e.g. ::1234:5678/::ffff:ffff)');
+            }
+            hasIPv6 = true;
+        }
+        else {
+            if (!ipCidrRegex.test(valueToValidate)) {
+                return _('Invalid IP address or CIDR format: ') + v;
+            }
+            // Detect IP version
+            if (valueToValidate.indexOf(':') !== -1) {
+                hasIPv6 = true;
+            } else {
+                hasIPv4 = true;
+            }
+        }
+    }
+    
+    return true;
+}
+
 return view.extend({
+    // Rule counter polling
+    counterData: {},
+    pollHandler: null,
+    pollInterval: 8,
+    
+    load: function() {
+        this.counterData = {};
+        return this.super && this.super('load') || Promise.resolve();
+    },
+    
+    // Create polling function for rule counter updates
+    createPollFunction: function() {
+        var view = this;
+        return function() {
+
+            return callRuleCounters().then(function(result) {
+
+                if (result && Array.isArray(result)) {
+
+                    view.updateCounterData(result);
+                } else {
+
+                }
+                return result;
+            }).catch(function(err) {
+
+                return null;
+            });
+        };
+    },
+    
+    // Start counter polling
+    startCounterPolling: function() {
+        if (this.pollHandler) {
+            return; // Already polling
+        }
+        
+        var view = this;
+        var startPollingWhenReady = function() {
+            var luciTable = document.querySelector('.cbi-section-table');
+
+            
+            if (luciTable) {
+
+                view.pollHandler = view.createPollFunction();
+                poll.add(view.pollHandler, view.pollInterval);
+                view.pollHandler(); // Initial call
+            } else {
+
+                setTimeout(startPollingWhenReady, 1000); // Retry after 1 second
+            }
+        };
+        
+        startPollingWhenReady();
+    },
+    
+    // Stop counter polling
+    stopCounterPolling: function() {
+        if (this.pollHandler) {
+            poll.remove(this.pollHandler);
+            this.pollHandler = null;
+
+        }
+    },
+    
+    // Update counter data and refresh UI
+    updateCounterData: function(ruleCounters) {
+        var view = this;
+        view.counterData = {};
+        
+        if (Array.isArray(ruleCounters)) {
+            ruleCounters.forEach(function(rule) {
+                view.counterData[rule.rule_name] = {
+                    packets: rule.total_packets || 0,
+                    bytes: rule.total_bytes || 0,
+                    ipv4_packets: rule.ipv4_packets || 0,
+                    ipv6_packets: rule.ipv6_packets || 0
+                };
+            });
+            view.updateActivityColumnInTable();
+        }
+    },
+    
+    // Update Activity column in LuCI table
+    updateActivityColumnInTable: function() {
+        var view = this;
+        setTimeout(function() {
+            // Find LuCI table and Activity column
+            var table = document.querySelector('.cbi-section-table');
+            if (!table) {
+
+                return;
+            }
+            
+
+            var headerRow = table.querySelector('tr');
+            var activityColumnIndex = -1;
+            
+            if (headerRow) {
+                var headers = headerRow.querySelectorAll('th');
+                headers.forEach(function(th, index) {
+                    if (th.textContent.includes('Activity')) {
+                        activityColumnIndex = index;
+
+                    }
+                });
+            }
+            
+            if (activityColumnIndex >= 0) {
+                var dataRows = table.querySelectorAll('tr[data-sid]');
+
+                
+                dataRows.forEach(function(row) {
+                    var sectionId = row.getAttribute('data-sid');
+                    var cells = row.querySelectorAll('td');
+                    if (cells[activityColumnIndex] && sectionId) {
+                        var ruleName = uci.get('qosmate', sectionId, 'name');
+                        var counterEnabled = uci.get('qosmate', sectionId, 'counter');
+                        
+
+                        
+                        var activityCell = cells[activityColumnIndex];
+                        var content = view.formatCounterDisplay(ruleName, counterEnabled);
+                        activityCell.innerHTML = '';
+                        activityCell.appendChild(content);
+                    }
+                });
+            }
+        }, 200); // Give LuCI time to render
+    },
+    
+    // Format counter display
+    formatCounterDisplay: function(ruleName, counterEnabled) {
+        if (counterEnabled !== '1') {
+            return E('span', {'style': 'color: #999; font-size: 0.9em;'}, '-');
+        }
+        
+        var stats = this.counterData[ruleName];
+        if (!stats || stats.packets === 0) {
+            return E('span', {'style': 'color: #999; font-size: 0.9em;'}, _('no activity'));
+        }
+        
+        var totalPackets = stats.packets;
+        var displayText = '';
+        
+        // Format packet count for readability
+        if (totalPackets >= 1000000) {
+            displayText = (totalPackets / 1000000).toFixed(1) + 'M pkts';
+        } else if (totalPackets >= 1000) {
+            displayText = (totalPackets / 1000).toFixed(1) + 'K pkts';
+        } else {
+            displayText = totalPackets + ' pkts';
+        }
+        
+        // Add IPv4/IPv6 breakdown if both are present
+        var breakdown = '';
+        if (stats.ipv4_packets > 0 && stats.ipv6_packets > 0) {
+            breakdown = ` (v4:${stats.ipv4_packets}, v6:${stats.ipv6_packets})`;
+        }
+        
+        return E('span', {
+            'style': 'color: #0a84ff; font-size: 0.9em; font-weight: 500;',
+            'title': `Total: ${totalPackets} packets, ${(stats.bytes / 1024).toFixed(1)} KB${breakdown}`
+        }, displayText);
+    },
+
     handleSaveApply: function(ev) {
         return this.handleSave(ev)
             .then(() => ui.changes.apply())
@@ -56,7 +336,7 @@ return view.extend({
             E('h4', _('HFSC Mapping:')),
             E('table', { 'class': 'table' }, [
                 E('tr', { 'class': 'tr' }, [
-                    E('td', { 'class': 'td left', 'width': '50%' }, _('High Priority [Realtime] (1:11)')),
+                    E('td', { 'class': 'td left', 'width': '25%' }, _('High Priority [Realtime] (1:11)')),
                     E('td', { 'class': 'td left' }, 'EF, CS5, CS6, CS7')
                 ]),
                 E('tr', { 'class': 'tr' }, [
@@ -76,10 +356,14 @@ return view.extend({
                     E('td', { 'class': 'td left' }, 'CS1')
                 ])
             ]),
+            E('p', { 'style': 'font-size:0.9em; margin: -5px 0 15px 5px;' }, [
+                E('strong', _('Hybrid Note:')), ' ', 
+                _('Uses Realtime (1:11) & Bulk (1:15) classes with their dscp values from HFSC. All other traffic is handled by a single CAKE class (1:13).')
+            ]),
             E('h4', _('CAKE Mapping (diffserv4):')),
             E('table', { 'class': 'table' }, [
                 E('tr', { 'class': 'tr' }, [
-                    E('td', { 'class': 'td left', 'width': '50%' }, _('Voice (Highest Priority)')),
+                    E('td', { 'class': 'td left', 'width': '25%' }, _('Voice (Highest Priority)')),
                     E('td', { 'class': 'td left' }, 'CS7, CS6, EF, VA, CS5, CS4')
                 ]),
                 E('tr', { 'class': 'tr' }, [
@@ -104,8 +388,12 @@ return view.extend({
         o.cfgvalue = function(section_id) {
             var proto = uci.get('qosmate', section_id, 'proto');
             if (Array.isArray(proto)) {
-                return proto.map(function(p) { return p.toUpperCase(); }).join(', ');
+                return proto.map(function(p) { 
+                    if (p === 'ipv6-icmp') return 'ICMPv6';
+                    return p.toUpperCase(); 
+                }).join(', ');
             } else if (typeof proto === 'string') {
+                if (proto === 'ipv6-icmp') return 'ICMPv6';
                 return proto.toUpperCase();
             }
             return _('Any');
@@ -115,6 +403,7 @@ return view.extend({
         o.value('tcp', _('TCP'));
         o.value('udp', _('UDP'));
         o.value('icmp', _('ICMP'));
+        o.value('ipv6-icmp', _('ICMPv6'));
         o.rmempty = true;
         o.default = 'tcp udp';
         o.modalonly = true;
@@ -142,7 +431,7 @@ return view.extend({
                 return true;
             }
             
-            var valid = ['tcp', 'udp', 'icmp'];
+            var valid = ['tcp', 'udp', 'icmp', 'ipv6-icmp'];
             var toValidate = Array.isArray(value) ? value : value.split(/\s+/);
             
             for (var i = 0; i < toValidate.length; i++) {
@@ -159,29 +448,10 @@ return view.extend({
 
         o = s.taboption('general', form.DynamicList, 'src_ip', _('Source IP'));
         o.datatype = 'string';
-        o.placeholder = _('IP address or @setname');
+        o.placeholder = _('IP address, @setname or ::suffix/::mask');
         o.rmempty = true;
         o.validate = function(section_id, value) {
-            if (!value || value.length === 0) {
-                return true;
-            }
-            
-            var values = Array.isArray(value) ? value : value.split(/\s+/);
-            var ipCidrRegex = /^(?:(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?:\.(?:25[0-5]|2[0-4]\d|[01]?\d\d?)){3})(?:\/(?:[0-9]|[1-2]\d|3[0-2]))?|(?:(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}|(?:[A-Fa-f0-9]{1,4}:){1,7}:|(?:[A-Fa-f0-9]{1,4}:){1,6}:[A-Fa-f0-9]{1,4}|(?:[A-Fa-f0-9]{1,4}:){1,5}(?::[A-Fa-f0-9]{1,4}){1,2}|(?:[A-Fa-f0-9]{1,4}:){1,4}(?::[A-Fa-f0-9]{1,4}){1,3}|(?:[A-Fa-f0-9]{1,4}:){1,3}(?::[A-Fa-f0-9]{1,4}){1,4}|(?:[A-Fa-f0-9]{1,4}:){1,2}(?::[A-Fa-f0-9]{1,4}){1,5}|[A-Fa-f0-9]{1,4}:(?:(?::[A-Fa-f0-9]{1,4}){1,6})|:(?:(?::[A-Fa-f0-9]{1,4}){1,7}|:))(?:\/(?:[0-9]|[1-9]\d|1[0-1]\d|12[0-8]))?)$/;
-            
-            for (var i = 0; i < values.length; i++) {
-                var v = values[i].replace(/^!(?!=)/, '!=');
-                if (v.startsWith('@')) {
-                    if (!/^@[a-zA-Z0-9_]+$/.test(v)) {
-                        return _('Invalid set name format. Must start with @ followed by letters, numbers, or underscore');
-                    }
-                } else {
-                    if (!ipCidrRegex.test(v)) {
-                        return _('Invalid IP address or CIDR format: ') + v;
-                    }
-                }
-            }
-            return true;
+            return validateIPField(section_id, value);
         };
         o.write = function(section_id, formvalue) {
             var values = formvalue.map(function(v) {
@@ -195,37 +465,35 @@ return view.extend({
         o.placeholder = _('any');
         o.rmempty = true;
         o.write = function(section_id, formvalue) {
-            var values = formvalue.map(function(v) {
-                return v.replace(/^!(?!=)/, '!=');
-            });
+            var values;
+            // Handle array and string inputs
+            if (Array.isArray(formvalue)) {
+                values = formvalue.map(function(v) {
+                    // Also handle if individual values contain spaces
+                    if (typeof v === 'string' && v.indexOf(' ') !== -1) {
+                        return v.split(/\s+/).map(function(part) {
+                            return part.replace(/^!(?!=)/, '!=');
+                        }).join(' ');
+                    }
+                    return typeof v === 'string' ? v.replace(/^!(?!=)/, '!=') : v;
+                });
+            } else if (typeof formvalue === 'string') {
+                // If it's a string, split by spaces and process each part
+                values = formvalue.split(/\s+/).map(function(v) {
+                    return v.replace(/^!(?!=)/, '!=');
+                });
+            } else {
+                values = formvalue;
+            }
             return this.super('write', [section_id, values]);
         };
         
         o = s.taboption('general', form.DynamicList, 'dest_ip', _('Destination IP'));
         o.datatype = 'string';
-        o.placeholder = _('IP address or @setname');
+        o.placeholder = _('IP address, @setname or ::suffix/::mask');
         o.rmempty = true;
         o.validate = function(section_id, value) {
-            if (!value || value.length === 0) {
-                return true;
-            }
-            
-            var values = Array.isArray(value) ? value : value.split(/\s+/);
-            var ipCidrRegex = /^(?:(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?:\.(?:25[0-5]|2[0-4]\d|[01]?\d\d?)){3})(?:\/(?:[0-9]|[1-2]\d|3[0-2]))?|(?:(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}|(?:[A-Fa-f0-9]{1,4}:){1,7}:|(?:[A-Fa-f0-9]{1,4}:){1,6}:[A-Fa-f0-9]{1,4}|(?:[A-Fa-f0-9]{1,4}:){1,5}(?::[A-Fa-f0-9]{1,4}){1,2}|(?:[A-Fa-f0-9]{1,4}:){1,4}(?::[A-Fa-f0-9]{1,4}){1,3}|(?:[A-Fa-f0-9]{1,4}:){1,3}(?::[A-Fa-f0-9]{1,4}){1,4}|(?:[A-Fa-f0-9]{1,4}:){1,2}(?::[A-Fa-f0-9]{1,4}){1,5}|[A-Fa-f0-9]{1,4}:(?:(?::[A-Fa-f0-9]{1,4}){1,6})|:(?:(?::[A-Fa-f0-9]{1,4}){1,7}|:))(?:\/(?:[0-9]|[1-9]\d|1[0-1]\d|12[0-8]))?)$/;
-            
-            for (var i = 0; i < values.length; i++) {
-                var v = values[i].replace(/^!(?!=)/, '!=');
-                if (v.startsWith('@')) {
-                    if (!/^@[a-zA-Z0-9_]+$/.test(v)) {
-                        return _('Invalid set name format. Must start with @ followed by letters, numbers, or underscore');
-                    }
-                } else {
-                    if (!ipCidrRegex.test(v)) {
-                        return _('Invalid IP address or CIDR format: ') + v;
-                    }
-                }
-            }
-            return true;
+            return validateIPField(section_id, value);
         };
         o.write = function(section_id, formvalue) {
             var values = formvalue.map(function(v) {
@@ -239,9 +507,26 @@ return view.extend({
         o.placeholder = _('any');
         o.rmempty = true;
         o.write = function(section_id, formvalue) {
-            var values = formvalue.map(function(v) {
-                return v.replace(/^!(?!=)/, '!=');
-            });
+            var values;
+            // Handle array and string inputs
+            if (Array.isArray(formvalue)) {
+                values = formvalue.map(function(v) {
+                    // Also handle if individual values contain spaces
+                    if (typeof v === 'string' && v.indexOf(' ') !== -1) {
+                        return v.split(/\s+/).map(function(part) {
+                            return part.replace(/^!(?!=)/, '!=');
+                        }).join(' ');
+                    }
+                    return typeof v === 'string' ? v.replace(/^!(?!=)/, '!=') : v;
+                });
+            } else if (typeof formvalue === 'string') {
+                // If it's a string, split by spaces and process each part
+                values = formvalue.split(/\s+/).map(function(v) {
+                    return v.replace(/^!(?!=)/, '!=');
+                });
+            } else {
+                values = formvalue;
+            }
             return this.super('write', [section_id, values]);
         };
 
@@ -279,8 +564,48 @@ return view.extend({
             var value = uci.get('qosmate', section_id, 'enabled');
             // If the value is undefined (not set in config), return '1' (enabled)
             return (value === undefined) ? '1' : value;
-        };        
+        };
 
-        return m.render();
+        // Add counter activity column for live monitoring
+        o = s.option(form.DummyValue, 'counter_activity', _('Activity'));
+        o.cfgvalue = function(section_id) {
+            var counterEnabled = uci.get('qosmate', section_id, 'counter');
+            if (counterEnabled !== '1') {
+                return '-';
+            }
+            return 'loading...';
+        };
+        o.textvalue = function(section_id) {
+            var counterEnabled = uci.get('qosmate', section_id, 'counter');
+            if (counterEnabled !== '1') return '-';
+            return 'loading...';
+        };
+
+        var self = this;
+        // Store reference to the map for grid updates
+        this.gridMap = m;
+        this.gridSection = s;
+        
+        return m.render().then(function(rendered) {
+            // Store view instance globally for textvalue access
+            document.qosmateRulesView = self;
+            
+            // Start counter polling
+            if (!self.pollHandler) {
+                self.startCounterPolling();
+            }
+            
+            return rendered;
+        });
+    },
+    
+    // Handle view destruction - cleanup polling
+    handleDestroy: function() {
+        this.stopCounterPolling();
+    },
+    
+    // Handle window unload - cleanup polling
+    handleUnload: function() {
+        this.stopCounterPolling();
     }
 });

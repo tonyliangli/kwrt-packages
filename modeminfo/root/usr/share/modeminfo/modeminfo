@@ -1,11 +1,19 @@
 #!/bin/sh
 
+trap 'cleanup >/dev/null 2>&1; exit 0' INT TERM
 SECTIONS=$(echo $(uci show modeminfo | awk -F [\]\[\@=] '/=modeminfo/{print $3}'))
 
 get_vars(){
 	for v in device device_qmi qmi_proxy decimail qmi_mode;  do
-		eval $v=$(uci -q get modeminfo.@modeminfo[${s}].${v} 2>/dev/nul)
+		eval $v=$(uci -q get modeminfo.@modeminfo[${s}].${v} 2>/dev/null)
 	done
+}
+
+
+cleanup(){
+	CURRENT_PID=$$
+	ps ww | grep "/bin/sh.*modeminfo" | grep -v grep | awk '{print $1}' | grep -v "^$CURRENT_PID\$" | xargs -r kill -9 >/dev/null 2>&1
+	ps ww | grep "atinout" | grep -v grep | awk '{print $1}' | xargs -r kill -9 >/dev/null 2>&1
 }
 
 
@@ -95,7 +103,7 @@ for s in $SECTIONS; do
 	unset BWCA SCC SC BWDx BWPx BWCx BWDL LTE_CA \
                 DEVICE COPS MODE CSQ_PER LAC CSQ_RSSI \
                 SINR RSRP IMEI REGST EARFCN CHIPTEMP FW \
-                ICCID IMSI RSRQ
+                ICCID IMSI RSRQ DISTANCE
 done
 
 echo "]}"

@@ -11,7 +11,7 @@ init_proto "$@"
 
 
 valid_ip4(){
-	/bin/ipcalc.sh "${1}/${ip4mask}" > /dev/null 2&>1
+	/bin/ipcalc.sh "${1}/${ip4mask}" > /dev/null 2>&1
 }
 
 
@@ -22,6 +22,7 @@ proto_xmm_init_config() {
 	proto_config_add_string "apn"
 	proto_config_add_string "pdp"
 	proto_config_add_int "delay"
+	proto_config_add_string "pincode"
 	proto_config_add_string "username"
 	proto_config_add_string "password"
 	proto_config_add_string "auth"
@@ -104,20 +105,38 @@ proto_xmm_setup() {
 		return 1
 	}
 
-	# probes for AT port
+	# probes for AT port and SIM-card
 	for p in $(seq 1 $maxfail); do
-		! $(DEVPORT=$device gcom -s /etc/gcom/probeport.gcom) && {
-			if [ "$p" -eq "$maxfail" ]; then
-				echo "AT port not answer!"
-				proto_notify_error "$interface" NO_PORT_ANSWER
-				proto_set_available "$interface" 0
-				return 1
-			fi
-		} || {
-			break
-		}
+		DEVPORT=$device gcom -s /etc/gcom/probeport.gcom
+		DEVERR=$?
+		[ "$DEVERR" = "0" ] && break
+		if [ "$p" -eq "$maxfail" ]; then
+			case $DEVERR in
+				1)
+					echo "AT port not answer!"
+					proto_notify_error "$interface" NO_PORT_ANSWER
+					proto_set_available "$interface" 0
+					return 1
+				;;
+				2)
+					echo "SIM-card not insert!"
+					proto_notify_error "$interface" NO_SIM_CARD
+					proto_set_available "$interface" 0
+					return 1
+				;;
+			esac
+		fi
+	
 		sleep 3
 	done
+
+	if [ -n "$pincode" ]; then
+		PINCODE="$pincode" gcom -d "$device" -s /etc/gcom/setpin.gcom || {
+			proto_notify_error "$interface" PIN_FAILED
+			proto_block_restart "$interface"
+			return 1
+		}
+	fi
 
 	pdp=$(echo $pdp | awk '{print toupper($0)}')
 	[ "$pdp" = "IP" -o "$pdp" = "IPV6" -o "$pdp" = "IPV4V6" ] || pdp="IP"

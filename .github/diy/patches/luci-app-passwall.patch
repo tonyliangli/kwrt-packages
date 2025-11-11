@@ -11,7 +11,7 @@
 
 --- a/luci-app-passwall/Makefile
 +++ b/luci-app-passwall/Makefile
-@@ -36,7 +36,30 @@ LUCI_PKGARCH:=all
+@@ -36,7 +35,30 @@ LUCI_PKGARCH:=all
  LUCI_DEPENDS:=+coreutils +coreutils-base64 +coreutils-nohup +curl \
  	+chinadns-ng +dns2socks +dnsmasq-full +ip-full \
  	+libuci-lua +lua +luci-compat +luci-lib-jsonc \
@@ -30,7 +30,7 @@
 +	+PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Client:shadowsocksr-libev-ssr-local \
 +	+PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Client:shadowsocksr-libev-ssr-redir \
 +	+PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Server:shadowsocksr-libev-ssr-server \
-+	+PACKAGE_$(PKG_NAME)_INCLUDE_Simple_Obfs:simple-obfs \
++	+PACKAGE_$(PKG_NAME)_INCLUDE_Simple_Obfs:simple-obfs-client \
 +	+PACKAGE_$(PKG_NAME)_INCLUDE_SingBox:sing-box \
 +	+PACKAGE_$(PKG_NAME)_INCLUDE_Trojan_Plus:trojan-plus \
 +	+PACKAGE_$(PKG_NAME)_INCLUDE_tuic_client:tuic-client \
@@ -68,9 +68,9 @@
  
  config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Rust_Client
  	bool "Include Shadowsocks Rust Client"
- 	depends on aarch64||arm||i386||mips||mipsel||x86_64
+ 	depends on !i386
 -	select PACKAGE_shadowsocks-rust-sslocal
- 	default y if aarch64
+ 	default y if aarch64||x86_64
  
  config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Rust_Server
 @@ -110,8 +128,6 @@ config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Rust_Server
@@ -82,11 +82,11 @@
  	default y
  
  config PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Server
-@@ -121,22 +137,20 @@ config PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Server
+@@ -121,21 +137,19 @@ config PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Server
  
  config PACKAGE_$(PKG_NAME)_INCLUDE_Simple_Obfs
  	bool "Include Simple-Obfs (Shadowsocks Plugin)"
--	select PACKAGE_simple-obfs
+-	select PACKAGE_simple-obfs-client
  	default y
  
  config PACKAGE_$(PKG_NAME)_INCLUDE_SingBox
@@ -359,9 +359,8 @@ index cc39c00a21..079c9723b3 100755
 
 --- a/luci-app-passwall/root/usr/share/passwall/0_default_config
 +++ b/luci-app-passwall/root/usr/share/passwall/0_default_config
- 	option use_default_dns 'direct'
-@@ -45,12 +46,15 @@ config global_other
- 	option nodes_ping 'auto_ping tcping'
+@@ -57,13 +57,17 @@ config global_other
+ 	option show_node_info '0'
  
  config global_rules
 -	option auto_update '0'
@@ -371,11 +370,24 @@ index cc39c00a21..079c9723b3 100755
  	option chnroute6_update '1'
  	option gfwlist_update '1'
 -	option geosite_update '0'
-+	option geosite_update '1'
 -	option geoip_update '0'
++	option geosite_update '1'
 +	option geoip_update '1'
 +	option enable_geoview '1'
++	option geo2rule '1'
 +	option week_update '7'
 +	option time_update '4'
  	list gfwlist_url 'https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/gfw.txt'
  	list chnroute_url 'https://ispip.clang.cn/all_cn.txt'
+ 	list chnroute_url 'https://fastly.jsdelivr.net/gh/gaoyifan/china-operator-ip@ip-lists/china.txt'
+@@ -72,8 +76,8 @@ config global_rules
+ 	list chnlist_url 'https://fastly.jsdelivr.net/gh/felixonmars/dnsmasq-china-list/accelerated-domains.china.conf'
+ 	list chnlist_url 'https://fastly.jsdelivr.net/gh/felixonmars/dnsmasq-china-list/apple.china.conf'
+ 	option v2ray_location_asset '/usr/share/v2ray/'
+-	option geoip_url 'https://github.com/Loyalsoldier/geoip/releases/latest/download/geoip.dat'
+-	option geosite_url 'https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat'
++	option geoip_url 'https://fastly.jsdelivr.net/gh/Loyalsoldier/geoip@release/geoip.dat'
++	option geosite_url 'https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geosite.dat'
+ 
+ config global_app
+ 	option sing_box_file '/usr/bin/sing-box'

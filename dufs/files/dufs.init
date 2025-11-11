@@ -1,5 +1,5 @@
 #!/bin/sh /etc/rc.common
-# Copyright (C) 2024 Tianling Shen <cnsztl@immortalwrt.org>
+# Copyright (C) 2024-2025 Tianling Shen <cnsztl@immortalwrt.org>
 
 START=99
 USE_PROCD=1
@@ -79,7 +79,6 @@ start_service() {
 		json_add_array firewall
 			json_add_object ""
 			json_add_string type rule
-			json_add_string name "Allow-access-dufs-at-$listen_port"
 			json_add_string src "*"
 			json_add_string dest_port "$listen_port"
 			json_add_string proto tcp
@@ -92,18 +91,6 @@ start_service() {
 	procd_close_instance
 }
 
-service_started() {
-	procd_set_config_changed firewall
-}
-
-service_stopped() {
-	procd_set_config_changed firewall
-}
-
 service_triggers() {
 	procd_add_reload_trigger "$CONF"
-}
-
-reload_service() {
-	restart
 }

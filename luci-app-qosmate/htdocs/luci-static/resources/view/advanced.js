@@ -13,6 +13,24 @@ var callInitAction = rpc.declare({
     expect: { result: false }
 });
 
+// SFO warning for dynamic rule parameters
+function addSfoWarning(description, paramName) {
+    var dynamicParams = [
+        'UDP_RATE_LIMIT_ENABLED',
+        'TCP_UPGRADE_ENABLED', 
+        'TCP_DOWNPRIO_INITIAL_ENABLED',
+        'TCP_DOWNPRIO_SUSTAINED_ENABLED'
+    ];
+    
+    if (dynamicParams.includes(paramName)) {
+        var sfoEnabled = uci.get('firewall', '@defaults[0]', 'flow_offloading') === '1';
+        if (sfoEnabled) {
+            return description + ' ⚠ May not work with Software Flow Offloading enabled';
+        }
+    }
+    return description;
+}
+
 return view.extend({
     handleSaveApply: function(ev) {
         return this.handleSave(ev)
@@ -37,10 +55,65 @@ return view.extend({
     },
     
     render: function() {
-        var m, s, o;
+        return Promise.all([
+            uci.load('qosmate'),
+            uci.load('firewall')
+        ]).then(() => {
+            var m, s, o;
 
-        m = new form.Map('qosmate', _('QoSmate Advanced Settings'), _('Configure advanced settings for QoSmate.'));
+            m = new form.Map('qosmate', _('QoSmate Advanced Settings'), _('Configure advanced settings for QoSmate.'));
 
+        // Link Layer Settings
+        s = m.section(form.NamedSection, 'advanced', 'advanced', _('Link Layer Settings'), 
+            _('Configure link layer adaptation settings. For detailed information about different link types and overhead calculations, please check the ') + 
+            '<a href="https://openwrt.org/docs/guide-user/network/traffic-shaping/sqm-details" target="_blank" style="color: #1976d2; text-decoration: none;">OpenWrt SQM Documentation</a>.');
+        s.anonymous = true;
+        
+        o = s.option(form.ListValue, 'COMMON_LINK_PRESETS', _('Link Type'), 
+            _('Select your connection type for overhead calculation. Used by all QDiscs (HTB, HFSC, Hybrid, CAKE).'));
+        o.value('ethernet', _('Ethernet (HFSC/HTB: 40B, CAKE: 40B override)'));
+        o.value('docsis', _('Cable DOCSIS (25B)'));
+        o.value('atm', _('DSL ATM/ADSL (44B)'));
+        // CAKE native presets
+        o.value('cake-ethernet', _('[CAKE] Ethernet (38B native)'));
+        o.value('raw', _('[CAKE] Raw (No overhead)'));
+        o.value('conservative', _('[CAKE] Conservative (48B + ATM)'));
+        o.value('pppoa-vcmux', _('PPPoA VC-Mux'));
+        o.value('pppoa-llc', _('PPPoA LLC'));
+        o.value('pppoe-vcmux', _('PPPoE VC-Mux'));
+        o.value('pppoe-llcsnap', _('PPPoE LLC-SNAP'));
+        o.value('bridged-vcmux', _('Bridged VC-Mux'));
+        o.value('bridged-llcsnap', _('Bridged LLC-SNAP'));
+        o.value('ipoa-vcmux', _('IPoA VC-Mux'));
+        o.value('ipoa-llcsnap', _('IPoA LLC-SNAP'));
+        o.value('pppoe-ptm', _('PPPoE PTM'));
+        o.value('bridged-ptm', _('Bridged PTM'));
+        o.default = 'ethernet';
+        o.rmempty = false;
+
+        o = s.option(form.Value, 'OVERHEAD', _('Manual Overhead (bytes)'), 
+            _('Override automatic overhead. For HFSC/HTB: Ethernet=40, DOCSIS=25, ATM=44. CAKE will add this to its preset.'));
+        o.placeholder = 'Auto';
+        o.datatype = 'uinteger';
+        o.rmempty = true;
+        
+        o = s.option(form.Value, 'MPU', _('MPU'), 
+            _('Minimum packet unit size. Used primarily by CAKE, ignored by other QDiscs.'));
+        o.placeholder = 'Default: based on preset';
+        o.datatype = 'uinteger';
+        o.rmempty = true;
+        
+        o = s.option(form.Value, 'LINK_COMPENSATION', _('Link Compensation'), 
+            _('Additional link compensation (atm, ptm, noatm). Affects overhead calculations.'));
+        o.placeholder = 'Default: based on preset';
+        o.rmempty = true;
+        
+        o = s.option(form.Value, 'ETHER_VLAN_KEYWORD', _('Ether VLAN Keyword'), 
+            _('Ethernet VLAN keyword for CAKE. Ignored by other QDiscs.'));
+        o.placeholder = 'Default: none';
+        o.rmempty = true;
+
+        // Advanced Settings
         s = m.section(form.NamedSection, 'advanced', 'advanced', _('Advanced Settings'));
         s.anonymous = true;
 
@@ -79,18 +152,18 @@ return view.extend({
         createOption('BWMAXRATIO', _('Bandwidth Max Ratio'), _('Max download/upload ratio to prevent upstream congestion'), _('Default: 20'), 'uinteger');
         createOption('ACKRATE', _('ACK Rate'), _('Sets rate limit for TCP ACKs, helps prevent ACK flooding / set to 0 to disable ACK rate limit'), _('Default: 5% of UPRATE'), 'uinteger');
 
-        o = s.option(form.Flag, 'UDP_RATE_LIMIT_ENABLED', _('Enable UDP Rate Limit'), _('Downgrades UDP traffic exceeding 450 pps to lower priority'));
+        o = s.option(form.Flag, 'UDP_RATE_LIMIT_ENABLED', _('Enable UDP Rate Limit'), _(addSfoWarning('Downgrades UDP traffic exceeding 450 pps to lower priority', 'UDP_RATE_LIMIT_ENABLED')));
         o.rmempty = false;
 
-        o = s.option(form.Flag, 'TCP_UPGRADE_ENABLED', _('Boost Low-Volume TCP Traffic'), _('Upgrade DSCP to AF42 for TCP connections with less than 150 packets per second. This can improve responsiveness for interactive TCP services like SSH, web browsing, and instant messaging.'));
-        o.rmempty = false;
-        o.default = '1';
-
-        o = s.option(form.Flag, 'TCP_DOWNPRIO_INITIAL_ENABLED', _('Enable Initial TCP Down-Prioritization'), _('Downgrades the first ~500ms of TCP traffic (except CS1) to CS0 to prevent initial bursts'));
+        o = s.option(form.Flag, 'TCP_UPGRADE_ENABLED', _('Boost Low-Volume TCP Traffic'), _(addSfoWarning('Upgrade DSCP to AF42 for TCP connections with less than 150 packets per second. This can improve responsiveness for interactive TCP services like SSH, web browsing, and instant messaging.', 'TCP_UPGRADE_ENABLED')));
         o.rmempty = false;
         o.default = '1';
 
-        o = s.option(form.Flag, 'TCP_DOWNPRIO_SUSTAINED_ENABLED', _('Enable Sustained TCP Down-Prioritization'), _('Downgrades TCP flows exceeding ~10 seconds worth of data transfer to CS1 (Bulk). Helps prevent large downloads from starving other traffic.'));
+        o = s.option(form.Flag, 'TCP_DOWNPRIO_INITIAL_ENABLED', _('Enable Initial TCP Down-Prioritization'), _(addSfoWarning('Downgrades the first ~500ms of TCP traffic (except CS1) to CS0 to prevent initial bursts', 'TCP_DOWNPRIO_INITIAL_ENABLED')));
+        o.rmempty = false;
+        o.default = '1';
+
+        o = s.option(form.Flag, 'TCP_DOWNPRIO_SUSTAINED_ENABLED', _('Enable Sustained TCP Down-Prioritization'), _(addSfoWarning('Downgrades TCP flows exceeding ~10 seconds worth of data transfer to CS1 (Bulk). Helps prevent large downloads from starving other traffic.', 'TCP_DOWNPRIO_SUSTAINED_ENABLED')));
         o.rmempty = false;
         o.default = '1';
 
@@ -254,6 +327,7 @@ return view.extend({
             });
         };
 
-        return m.render();
+            return m.render();
+        });
     }
 });

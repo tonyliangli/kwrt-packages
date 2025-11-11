@@ -219,7 +219,7 @@ local TCP_REDIR_PORTS = m:get("@global_forwarding[0]", "tcp_redir_ports")
 o = s:option(Value, "tcp_redir_ports", translate("TCP Redir Ports"))
 o:value("", translate("Use global config") .. "(" .. TCP_REDIR_PORTS .. ")")
 o:value("1:65535", translate("All"))
-o:value("22,25,53,143,465,587,853,993,995,80,443", translate("Common Use"))
+o:value("22,25,53,80,143,443,465,587,853,873,993,995,5222,8080,8443,9418", translate("Common Use"))
 o:value("80,443", "80,443")
 o.validate = port_validate
 o:depends({ _hide_node_option = "1",  ['!reverse'] = true })
@@ -280,7 +280,7 @@ o:value("https://8.8.8.8/dns-query", "Google 8888")
 o:value("https://9.9.9.9/dns-query", "Quad9-Recommended 9.9.9.9")
 o:value("https://149.112.112.112/dns-query", "Quad9-Recommended 149.112.112.112")
 o:value("https://208.67.222.222/dns-query", "OpenDNS")
-o:value("https://dns.adguard.com/dns-query,176.103.130.130", "AdGuard")
+o:value("https://dns.adguard.com/dns-query,94.140.14.14", "AdGuard")
 o:value("https://doh.libredns.gr/dns-query,116.202.176.26", "LibreDNS")
 o:value("https://doh.libredns.gr/ads,116.202.176.26", "LibreDNS (No Ads)")
 o.default = "https://1.1.1.1/dns-query"
@@ -303,7 +303,7 @@ o:depends("remote_dns_protocol", "tcp")
 o:depends("remote_dns_protocol", "doh")
 o:depends("remote_dns_protocol", "udp")
 
-o = s:option(Flag, "remote_fakedns", "FakeDNS", translate("Use FakeDNS work in the shunt domain that proxy."))
+o = s:option(Flag, "remote_fakedns", "FakeDNS", translate("Use FakeDNS work in the domain that proxy."))
 o.default = "0"
 o.rmempty = false
 o:depends("remote_dns_protocol", "tcp")

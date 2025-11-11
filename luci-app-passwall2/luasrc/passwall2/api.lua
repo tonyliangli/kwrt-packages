@@ -55,7 +55,8 @@ function uci_save(cursor, config, commit, apply)
 end
 
 function sh_uci_get(config, section, option)
-	exec_call(string.format("uci -q get %s.%s.%s", config, section, option))
+	local _, val = exec_call(string.format("uci -q get %s.%s.%s", config, section, option))
+	return val
 end
 
 function sh_uci_set(config, section, option, val, commit)
@@ -194,11 +195,16 @@ function curl_direct(url, file, args)
 end
 
 function curl_auto(url, file, args)
-	local return_code, result = curl_proxy(url, file, args)
-	if not return_code or return_code ~= 0 then
-		return_code, result = curl_direct(url, file, args)
+	local localhost_proxy = uci:get(appname, "@global[0]", "localhost_proxy") or "1"
+	if localhost_proxy == "1" then
+		return curl_base(url, file, args)
+	else
+		local return_code, result = curl_proxy(url, file, args)
+		if not return_code or return_code ~= 0 then
+			return_code, result = curl_direct(url, file, args)
+		end
+		return return_code, result
 	end
-	return return_code, result
 end
 
 function url(...)
@@ -212,8 +218,9 @@ function url(...)
 	return require "luci.dispatcher".build_url(url)
 end
 
-function trim(s)
-	return (s:gsub("^%s*(.-)%s*$", "%1"))
+function trim(text)
+	if not text or text == "" then return "" end
+	return text:match("^%s*(.-)%s*$")
 end
 
 -- 分割字符串
@@ -330,41 +337,28 @@ function is_special_node(e)
 end
 
 function is_ip(val)
-	if is_ipv6(val) then
-		val = get_ipv6_only(val)
-	end
-	return datatypes.ipaddr(val)
+	local str = val:match("%[(.-)%]") or val
+	return datatypes.ipaddr(str) or false
 end
 
 function is_ipv6(val)
-	local str = val
-	local address = val:match('%[(.*)%]')
-	if address then
-		str = address
-	end
-	if datatypes.ip6addr(str) then
-		return true
-	end
-	return false
+	local str = val:match("%[(.-)%]") or val
+	return datatypes.ip6addr(str) or false
 end
 
 function is_ipv6addrport(val)
-	if is_ipv6(val) then
-		local address, port = val:match('%[(.*)%]:([^:]+)$')
-		if port then
-			return datatypes.port(port)
-		end
+	local address, port = val:match("%[(.-)%]:([0-9]+)$")
+	if address and datatypes.ip6addr(address) and datatypes.port(port) then
+		return true
 	end
 	return false
 end
 
 function get_ipv6_only(val)
 	local result = ""
-	if is_ipv6(val) then
-		result = val
-		if val:match('%[(.*)%]') then
-			result = val:match('%[(.*)%]')
-		end
+	local inner = val:match("%[(.-)%]") or val
+	if datatypes.ip6addr(inner) then
+		result = inner
 	end
 	return result
 end
@@ -373,7 +367,7 @@ function get_ipv6_full(val)
 	local result = ""
 	if is_ipv6(val) then
 		result = val
-		if not val:match('%[(.*)%]') then
+		if not val:match("%[.-%]") then
 			result = "[" .. result .. "]"
 		end
 	end
@@ -456,7 +450,8 @@ function get_valid_nodes()
 				e["node_type"] = "special"
 				nodes[#nodes + 1] = e
 			end
-			if e.port and e.address then
+			local port = e.port or e.hysteria_hop or e.hysteria2_hop
+			if port and e.address then
 				local address = e.address
 				if is_ip(address) or datatypes.hostname(address) then
 					local type = e.type
@@ -478,6 +473,8 @@ function get_valid_nodes()
 							protocol = "HY2"
 						elseif protocol == "anytls" then
 							protocol = "AnyTLS"
+						elseif protocol == "ssh" then
+							protocol = "SSH"
 						else
 							protocol = protocol:gsub("^%l",string.upper)
 						end
@@ -487,7 +484,8 @@ function get_valid_nodes()
 					if is_ipv6(address) then address = get_ipv6_full(address) end
 					e["remark"] = "%s：[%s]" % {type, e.remarks}
 					if show_node_info == "1" then
-						e["remark"] = "%s：[%s] %s:%s" % {type, e.remarks, address, e.port}
+						port = port:gsub(":", "-")
+						e["remark"] = "%s：[%s] %s:%s" % {type, e.remarks, address, port}
 					end
 					e.node_type = "normal"
 					nodes[#nodes + 1] = e
@@ -523,6 +521,8 @@ function get_node_remarks(n)
 					protocol = "HY2"
 				elseif protocol == "anytls" then
 					protocol = "AnyTLS"
+				elseif protocol == "ssh" then
+					protocol = "SSH"
 				else
 					protocol = protocol:gsub("^%l",string.upper)
 				end
@@ -538,8 +538,10 @@ end
 function get_full_node_remarks(n)
 	local remarks = get_node_remarks(n)
 	if #remarks > 0 then
-		if n.address and n.port then
-			remarks = remarks .. " " .. n.address .. ":" .. n.port
+		local port = n.port or n.hysteria_hop or n.hysteria2_hop
+		if n.address and port then
+			port = port:gsub(":", "-")
+			remarks = remarks .. " " .. n.address .. ":" .. port
 		end
 	end
 	return remarks
@@ -854,7 +856,7 @@ local function auto_get_arch()
 		end
 	end
 
-	return util.trim(arch)
+	return trim(arch)
 end
 
 local default_file_tree = {
@@ -980,7 +982,7 @@ function to_download(app_name, url, size)
 
 	sys.call("/bin/rm -f /tmp/".. app_name .."_download.*")
 
-	local tmp_file = util.trim(util.exec("mktemp -u -t ".. app_name .."_download.XXXXXX"))
+	local tmp_file = trim(util.exec("mktemp -u -t ".. app_name .."_download.XXXXXX"))
 
 	if size then
 		local kb1 = get_free_space("/tmp")
@@ -990,7 +992,7 @@ function to_download(app_name, url, size)
 	end
 
 	local _curl_args = clone(curl_args)
-	table.insert(_curl_args, "-m 60")
+	table.insert(_curl_args, "--speed-limit 51200 --speed-time 15 --max-time 300")
 
 	local return_code, result = curl_logic(url, tmp_file, _curl_args)
 	result = return_code == 0
@@ -1043,7 +1045,7 @@ function to_extract(app_name, file, subfix)
 		return {code = 1, error = i18n.translatef("%s not enough space.", "/tmp")}
 	end
 
-	local tmp_dir = util.trim(util.exec("mktemp -d -t ".. app_name .."_extract.XXXXXX"))
+	local tmp_dir = trim(util.exec("mktemp -d -t ".. app_name .."_extract.XXXXXX"))
 
 	local output = {}
 
@@ -1202,14 +1204,28 @@ function is_js_luci()
 end
 
 function set_apply_on_parse(map)
+	if not map then
+		return
+	end
 	if is_js_luci() == true then
-		map.apply_on_parse = false
-		map.on_after_apply = function(self)
-			if self.redirect then
-				os.execute("sleep 1")
-				luci.http.redirect(self.redirect)
+		local hide_popup_box = nil
+		if hide_popup_box == true then
+			map.apply_on_parse = false
+			map.on_after_apply = function(self)
+				if self.redirect then
+					os.execute("sleep 1")
+					luci.http.redirect(self.redirect)
+				end
+			end
+		else
+			map.on_after_save = function(self)
+				map:set("@global[0]", "timestamp", os.time())
 			end
 		end
+	end
+	map.render = function(self, ...)
+		getmetatable(self).__index.render(self, ...) -- 保持原渲染流程
+		optimize_cbi_ui()
 	end
 end
 
@@ -1284,4 +1300,57 @@ function luci_types(id, m, s, type_name, option_prefix)
 			end
 		end
 	end
+end
+function format_go_time(input)
+	input = input and trim(input)
+	local N = 0
+	if input and input:match("^%d+$") then
+		N = tonumber(input)
+	elseif input and input ~= "" then
+		for value, unit in input:gmatch("(%d+)%s*([hms])") do
+			value = tonumber(value)
+			if unit == "h" then
+				N = N + value * 3600
+			elseif unit == "m" then
+				N = N + value * 60
+			elseif unit == "s" then
+				N = N + value
+			end
+		end
+	end
+	if N <= 0 then
+		return "0s"
+	end
+	local result = ""
+	local h = math.floor(N / 3600)
+	local m = math.floor(N % 3600 / 60)
+	local s = N % 60
+	if h > 0 then result = result .. h .. "h" end
+	if m > 0 then result = result .. m .. "m" end
+	if s > 0 or result == "" then result = result .. s .. "s" end
+	return result
+end
+
+function optimize_cbi_ui()
+	luci.http.write([[
+		<script type="text/javascript">
+			//修正上移、下移按钮名称
+			document.querySelectorAll("input.btn.cbi-button.cbi-button-up").forEach(function(btn) {
+				btn.value = "]] .. i18n.translate("Move up") .. [[";
+			});
+			document.querySelectorAll("input.btn.cbi-button.cbi-button-down").forEach(function(btn) {
+				btn.value = "]] .. i18n.translate("Move down") .. [[";
+			});
+			//删除控件和说明之间的多余换行
+			document.querySelectorAll("div.cbi-value-description").forEach(function(descDiv) {
+				var prev = descDiv.previousSibling;
+				while (prev && prev.nodeType === Node.TEXT_NODE && prev.textContent.trim() === "") {
+					prev = prev.previousSibling;
+				}
+				if (prev && prev.nodeType === Node.ELEMENT_NODE && prev.tagName === "BR") {
+					prev.remove();
+				}
+			});
+		</script>
+	]])
 end

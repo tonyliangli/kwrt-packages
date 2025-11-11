@@ -5,12 +5,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=gn
-PKG_RELEASE:=7
+PKG_RELEASE:=12
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://gn.googlesource.com/gn.git
-PKG_SOURCE_DATE:=2025-05-27
-PKG_SOURCE_VERSION:=a84e399f9999003472192286abc03d752c9cb1f0
+PKG_SOURCE_DATE:=2025-11-07
+PKG_SOURCE_VERSION:=e7f3202128bdb2429872fdb138626a010b2bff7f
 PKG_MIRROR_HASH:=skip
 
 PKG_LICENSE:=BSD 3-Clause
@@ -38,7 +38,8 @@ endef
 
 define Host/Configure
 	$(PYTHON) $(HOST_BUILD_DIR)/build/gen.py \
-		--no-last-commit-position
+		--no-last-commit-position \
+		--allow-warnings
 endef
 
 define Host/Compile

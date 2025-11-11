@@ -45,7 +45,6 @@ totd(){
         procd_append_param command $PROG -c /var/etc/totd.conf
         procd_set_param stdout 1
         procd_set_param stderr 1
-	procd_set_param pidfile
         procd_set_param respawn
         procd_close_instance
 }
@@ -56,7 +55,7 @@ start_service(){
 }
 
 stop_service(){
-	killall $PROG > /dev/null 2&>1
+	kill `pgrep -f $PROG` > /dev/null 2>&1
 }
 
 reload_service() {
