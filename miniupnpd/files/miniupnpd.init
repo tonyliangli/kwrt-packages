@@ -218,11 +218,6 @@ stop_service() {
 	fi
 }
 
-reload_service() {
-	stop
-	start
-}
-
 start_service() {
 	config_load "upnpd"
 	config_foreach upnpd "upnpd"
@@ -230,4 +225,8 @@ start_service() {
 
 service_triggers() {
 	procd_add_reload_trigger "upnpd"
+}
+
+reload_service() {
+	restart
 }
